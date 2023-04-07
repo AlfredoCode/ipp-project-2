@@ -79,7 +79,7 @@ class ParseXML:
 
     def tagsLoad(self, element, e):
         ope = self.operands
-        arg_pattern = "arg["+str(self.count+1)+"]"
+        
         if element.tagName != "program":
             exit(e.XML_STRUCTURE)
         if "language" not in element.attributes.keys():
@@ -103,12 +103,12 @@ class ParseXML:
                         e.msg("Invalid opcode!\n")
                         exit(e.XML_STRUCTURE)
                     if self.count > ope.operands[child.getAttribute('opcode')]:
-                        e.msg("Invalid number or arguments for instruction!\n")
+                        e.msg("Invalid number of arguments for instruction!\n")
                         exit(e.XML_STRUCTURE)
                         
                     if sub.nodeType == sub.ELEMENT_NODE:
                         self.count += 1
-                        
+                        arg_pattern = "arg["+str(self.count)+"]"
                         if new != sub.tagName:
                             if re.match(arg_pattern, sub.tagName):
                                 new = sub.tagName
@@ -118,6 +118,7 @@ class ParseXML:
                         else:
                             e.msg("Arguments of same number not allowed!\n")
                             exit(e.XML_STRUCTURE)
+            self.count = 0
         
         self.firstLevel.sort(key=lambda tag: tag.getAttribute('order')) # Sorts the instructions by order
         prev_order = None
@@ -210,7 +211,7 @@ class InstructionParser:
     def execute(self, e, frame):
         op = self.opcode
         children = self.element.childNodes
-        print(op)
+        # print(op)
         # print(self.element.childNodes)
         pattern_GF = "GF@[^@]+"
         pattern_TF = "TF@[^@]+"
