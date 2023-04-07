@@ -48,23 +48,47 @@ class LoadXML(ParseXML):
         self.tagsLoad(element, e)
 
 class Frame:
-    def __init__(self, type):
-        self.vars = []
-        self.type = type
-    
-    def appendVar(self, var, e):
-        self.findVar(var, e)
-        self.vars.append(var)
+    def __init__(self):
+        self.TF = None
+        self.LF = None
+        self.GF = []
+
+    def appendVar(self, var, type, e):
+        if type == "GF":
+            self.findVar(self.GF, e)
+            self.GF.append(var)
+        elif type == "LF":
+            if self.LF is None:
+                exit(e.FRAME_NOT_EXIST)
+            self.findVar(self.LF, e)
+            self.LF.append(var)
+        elif type == "TF":
+            if self.TF is None:
+                exit(e.FRAME_NOT_EXIST)
+            self.findVar(self.TF, e)
+            self.TF.append(var)
+        
 
     #TODO def existsVar --> UNDEF_VAR
 
     def findVar(self, var, e):
-        if var in self.vars:
+        if var in self.GF:
             exit(e.SEMANTIC)
 
     def listAll(self, e):
-        for var in self.vars:
+        for var in self.GF:
             e.msg(var+"\n")
+        if self.LF is not None:
+            for var in self.LF:
+                e.msg(var+"\n")
+        if self.TF is not None:
+            for var in self.TF:
+                e.msg(var+"\n")
+    def createFrame(self, e):
+        if self.TF is None:
+            self.TF = []
+        self.TF.append(self.TF)
+        print(*self.TF)
 
 class InstructionParser:
     def __init__(self, element):
@@ -79,11 +103,17 @@ class InstructionParser:
                     if sub_child.nodeType == sub_child.TEXT_NODE:
                         curr = sub_child.nodeValue.strip()
                         # print(curr)
+                        print(op)
                         if op == "DEFVAR":
                             if re.match("GF@[^@]+", curr):
                                 curr = curr.replace("GF@", "")  ## PROBLEM PLACE
-                                
-                            frame.appendVar(curr, e)
+                                frame.appendVar(curr, "GF", e)
+                            if re.match("TF@[^@]+", curr):
+                                curr = curr.replace("TF@", "")  ## PROBLEM PLACE
+                                frame.appendVar(curr, "TF", e)
+                        if op == "CREATEFRAME": 
+                            print(op)
+                            frame.createFrame(e)
 
 
 
@@ -97,7 +127,7 @@ class Prog:
     # Error instance
     e = Err()
     xl = LoadXML()
-    GF = Frame("GF") #global frame
+    frame = Frame() #global frame
 
     src = args.source
     inp = args.input
@@ -114,8 +144,8 @@ class Prog:
     xl.processXML(root, e)
     for tag in xl.firstLevel:
         ins = InstructionParser(tag) # New instance of instruction
-        ins.execute(e, GF)
+        ins.execute(e, frame)
         # print(f"Order: {tag.getAttribute('order')} Instruction: {tag.getAttribute('opcode')}")
-    GF.listAll(e)
+    frame.listAll(e)
 if __name__ == '__main__':
     Prog()

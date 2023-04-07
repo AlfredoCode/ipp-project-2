@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <program language="IPPcode23" name="Stack test">
-    <instruction order="1" opcode="DEFVAR">
+    <instruction order="1" opcode="CREATEFRAME" />
+    <instruction order="2" opcode="DEFVAR">
         <arg1 type="var">GF@val</arg1>
     </instruction>
-    <instruction order="2" opcode="MOVE">
+    <instruction order="3" opcode="MOVE">
         <arg2 type="string">Hello</arg2>
         <arg1 type="var">GF@val</arg1>
     </instruction>
-    <instruction order="3" opcode="WRITE">
+    <instruction order="4" opcode="WRITE">
         <arg1 type="var">GF@val</arg1>
+    </instruction>
+    <instruction order="5" opcode="DEFVAR">
+        <arg1 type="var">TF@var_tf</arg1>
     </instruction>
 </program>
