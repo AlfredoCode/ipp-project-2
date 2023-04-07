@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="IPPcode23">
+	<instruction order="1">
+  		<arg1 type="var">TF@counter</arg1>
+        <arg2 type="var">TF@counteyr</arg2>
+        <arg1 type="var">TF@counteyr</arg1>
+ 	</instruction>
+</program>
