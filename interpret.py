@@ -91,7 +91,7 @@ class ParseXML:
                     e.msg("Unknow tag found!\n")
                     exit(e.XML_STRUCTURE)
                 self.firstLevel.append(child)
-                # TODO check instruicton <arg> elements
+                # Instruicton <arg> elements check
                 new = []
                 for sub in child.childNodes:
                     
@@ -141,8 +141,6 @@ class ParseXML:
             prev_order = curr_order
 
 class LoadXML(ParseXML):
-    
-
     def processXML(self, element, e):
         self.tagsLoad(element, e)
 
