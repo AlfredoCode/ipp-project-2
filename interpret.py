@@ -52,6 +52,7 @@ class Frame:
         self.TF = None
         self.LF = None
         self.GF = []
+        self.frameStack = []
 
     def appendVar(self, var, type, e):
         if type == "GF":
@@ -70,6 +71,13 @@ class Frame:
         
 
     #TODO def existsVar --> UNDEF_VAR
+    def pushFrame(self, e):
+        if self.TF is None:
+            e.msg("TF cannot be pushed since it does not exist.\n")
+            exit(e.FRAME_NOT_EXIST)
+        self.frameStack.append(self.TF)
+        self.TF = None
+
 
     def findVar(self, var, e):
         if var in self.GF:
@@ -87,8 +95,6 @@ class Frame:
     def createFrame(self, e):
         if self.TF is None:
             self.TF = []
-        self.TF.append(self.TF)
-        print(*self.TF)
 
 class InstructionParser:
     def __init__(self, element):
@@ -97,13 +103,13 @@ class InstructionParser:
     def execute(self, e, frame):
         op = self.opcode
         children = self.element.childNodes
+        print(op)
+        # print(self.element.childNodes)
         for child in children:
-            if child.nodeType == child.ELEMENT_NODE:
                 for sub_child in child.childNodes:
-                    if sub_child.nodeType == sub_child.TEXT_NODE:
                         curr = sub_child.nodeValue.strip()
                         # print(curr)
-                        print(op)
+                        
                         if op == "DEFVAR":
                             if re.match("GF@[^@]+", curr):
                                 curr = curr.replace("GF@", "")  ## PROBLEM PLACE
@@ -111,9 +117,12 @@ class InstructionParser:
                             if re.match("TF@[^@]+", curr):
                                 curr = curr.replace("TF@", "")  ## PROBLEM PLACE
                                 frame.appendVar(curr, "TF", e)
-                        if op == "CREATEFRAME": 
-                            print(op)
-                            frame.createFrame(e)
+                        else:
+                            exit(11)
+                if op == "CREATEFRAME": 
+                    frame.createFrame(e)
+                elif op == "PUSHFRAME":
+                    frame.pushFrame(e)
 
 
 
@@ -143,6 +152,8 @@ class Prog:
 
     xl.processXML(root, e)
     for tag in xl.firstLevel:
+        if tag.tagName != "instruction":
+            exit(e.XML_STRUCTURE)
         ins = InstructionParser(tag) # New instance of instruction
         ins.execute(e, frame)
         # print(f"Order: {tag.getAttribute('order')} Instruction: {tag.getAttribute('opcode')}")
