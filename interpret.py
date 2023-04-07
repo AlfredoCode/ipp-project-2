@@ -92,7 +92,7 @@ class ParseXML:
                     exit(e.XML_STRUCTURE)
                 self.firstLevel.append(child)
                 # TODO check instruicton <arg> elements
-                new = ""
+                new = []
                 for sub in child.childNodes:
                     
                     # print(child.getAttribute('opcode'))
@@ -109,9 +109,9 @@ class ParseXML:
                     if sub.nodeType == sub.ELEMENT_NODE:
                         self.count += 1
                         arg_pattern = "arg["+str(self.count)+"]"
-                        if new != sub.tagName:
+                        if sub.tagName not in new:
                             if re.match(arg_pattern, sub.tagName):
-                                new = sub.tagName
+                                new.append(sub.tagName)
                             else:
                                 e.msg("Unknown arg tag!\n")
                                 exit(e.XML_STRUCTURE)
