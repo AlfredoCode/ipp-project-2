@@ -159,6 +159,34 @@ class Frame:
         self.GF = []
         self.frameStack = []
         self.data = []
+    def addValues(self, dst, op1, op2, e):
+        frame = self.getFrame(dst)
+        self.existsFrame(frame, e)
+        op1_frame = self.getFrame(op1)
+        op2_frame = self.getFrame(op2)
+        if op1_frame is not None:
+            self.existsFrame(op1_frame, e)
+            op1 = self.strip(op1) 
+            for item in op1_frame:
+                # print(frame, var, item[0])
+                if item[0] == op1:
+                    op1 = item[1]
+                    break
+        if op2_frame is not None:
+            self.existsFrame(op2_frame, e)
+            op2 = self.strip(op2) 
+            for item in op2_frame:
+                # print(frame, var, item[0])
+                if item[0] == op2:
+                    op2 = item[1]
+                    break
+        try:
+            tmp = int(op1) + int(op2)
+        except:
+            e.msg("One or more uninitialized variables!\n")
+            exit(e.MISSING_VALUE)
+        # print(tmp, frame, dst)
+        self.updateValue(str(tmp), dst, e)
     def dataPush(self, data, e):
         frame = self.getFrame(data)
         if frame is None:
@@ -364,6 +392,15 @@ class InstructionParser:
                         frame.dataPush(curr, e)
                     elif op == "POPS":
                         frame.dataPop(curr, e)
+                    elif op == "ADD":
+                        if arg_counter == 1:
+                            dst = curr
+                        elif arg_counter == 2:
+                            op1 = curr
+                        else:
+                            op2 = curr
+                            frame.addValues(dst, op1, op2, e)
+
                         
 
                 # elif op == "WRITE":
