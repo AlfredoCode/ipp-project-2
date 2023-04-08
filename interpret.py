@@ -163,24 +163,28 @@ class Frame:
                 break
 
     def appendVar(self, var, e):
+        
         type = self.getFrame(var)
         var = self.strip(var)
-        # print(type, var)
-        if type == self.GF:
+
+        if type is self.GF:
             self.findVar(var, self.GF, e)
             self.GF.append([var, None])
-        elif type == self.LF:
+        elif type is self.LF:
             if self.LF is None:
+                e.msg("LF does not exist!\n")
                 exit(e.FRAME_NOT_EXIST)
             self.findVar(var, self.LF, e)
             self.LF.append([var, None])
-        elif type == self.TF:
+        elif type is self.TF:
             if self.TF is None:
+                e.msg("TF does not exist!\n")
                 exit(e.FRAME_NOT_EXIST)
             self.findVar(var, self.TF, e)
             self.TF.append([var, None])
         
     def getFrame(self, var):
+        
         pattern_GF = "GF@[^@]+"
         pattern_TF = "TF@[^@]+"
         pattern_LF = "LF@[^@]+"
@@ -190,16 +194,15 @@ class Frame:
         elif re.match(pattern_TF, var):
             frame = self.TF
         elif re.match(pattern_LF, var):
-            var = var.replace("LF@", "")  ## PROBLEM PLACE
             frame = self.LF
         return frame
     def strip(self, var):
         frame = self.getFrame(var) 
-        if frame == self.GF:
+        if frame is self.GF:
             var = var.replace("GF@", "")  ## PROBLEM PLACE
-        elif frame == self.TF:
+        elif frame is self.TF:
             var = var.replace("TF@", "")  ## PROBLEM PLACE
-        elif frame == self.LF:
+        elif frame is self.LF:
             var = var.replace("LF@", "")  ## PROBLEM PLACE
         return var
 
@@ -210,6 +213,7 @@ class Frame:
             exit(e.FRAME_NOT_EXIST)
     def existsVar(self, var, e):
         frame = self.getFrame(var)
+        print(frame, var)
         self.existsFrame(frame, e)
         var = self.strip(var)
         found = False
@@ -237,7 +241,7 @@ class Frame:
             e.msg("Variable cannot be redefined, probably used DEFVAR on same var\n")
             exit(e.SEMANTIC)
 
-    def listAll(self, e):
+    def listAll(self, e):   # Lists all variables in all available frames -- DEBUG INFO
         if self.LF is not []:
             e.msg("@@@ GF Variables @@@\n")
             for var in self.GF:
@@ -267,7 +271,6 @@ class InstructionParser:
         arg_counter = 0 
         dst = ""
         for child in children:
-              
             for sub_child in child.childNodes:
                 curr = sub_child.nodeValue.strip()
                 # print(curr)
@@ -278,16 +281,15 @@ class InstructionParser:
                     if arg_counter == 1:
                         # print(arg_counter)
                         dst = curr
-                        frame.existsVar(curr, e)
+                        frame.existsVar(dst, e)
                     else:
                         frame.updateValue(curr, dst, e)   
 
                 # elif op == "WRITE":
-
-            if op == "CREATEFRAME": 
-                frame.createFrame(e)
-            elif op == "PUSHFRAME":
-                frame.pushFrame(e)
+        if op == "CREATEFRAME": 
+            frame.createFrame(e)
+        elif op == "PUSHFRAME":
+            frame.pushFrame(e)
 
 
 
