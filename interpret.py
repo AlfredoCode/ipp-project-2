@@ -96,18 +96,15 @@ class ParseXML:
 
                 sorted_children = sorted((node for node in child.childNodes if node.nodeType == node.ELEMENT_NODE), key=lambda child: child.tagName)
 
-
+                try:
+                        ope.operands[child.getAttribute('opcode')]
+                except:
+                    e.msg("Invalid opcode!\n")
+                    exit(e.XML_STRUCTURE)
                 for sub in sorted_children:
                     # print(child.getAttribute('opcode'))
                     # print(self.count)
-                    try:
-                        ope.operands[child.getAttribute('opcode')]
-                    except:
-                        e.msg("Invalid opcode!\n")
-                        exit(e.XML_STRUCTURE)
-                    if self.count > ope.operands[child.getAttribute('opcode')]:
-                        e.msg("Invalid number of arguments for instruction!\n")
-                        exit(e.XML_STRUCTURE)
+            
                         
                     if sub.nodeType == sub.ELEMENT_NODE:
                         self.count += 1
@@ -122,9 +119,9 @@ class ParseXML:
                         else:
                             e.msg("Arguments of same number not allowed!\n")
                             exit(e.XML_STRUCTURE)
-                    if self.count < ope.operands[child.getAttribute('opcode')]:
-                            e.msg("Invalid number of arguments for instruction!\n")
-                            exit(e.XML_STRUCTURE)
+                if self.count < ope.operands[child.getAttribute('opcode')] or self.count > ope.operands[child.getAttribute('opcode')]:
+                    e.msg("Invalid number of arguments for instruction!\n")
+                    exit(e.XML_STRUCTURE)
             self.count = 0
         try:
             self.firstLevel.sort(key=lambda tag: int(tag.getAttribute('order'))) # Sorts the instructions by order
@@ -252,6 +249,16 @@ class Frame:
         if var in frame:
             e.msg("Variable cannot be redefined, probably used DEFVAR on same var\n")
             exit(e.SEMANTIC)
+    def printVar(self, var, e):
+        frame = self.getFrame(var)
+        # print(frame, var)
+        self.existsFrame(frame, e)
+        var = self.strip(var) 
+        for item in frame:
+            # print(frame, var, item[0])
+            if item[0] == var:
+                print(item[1], end="")
+                break 
 
     def listAll(self, e):   # Lists all variables in all available frames -- DEBUG INFO
         if self.LF is not []:
@@ -306,6 +313,15 @@ class InstructionParser:
                             frame.existsVar(dst, e)
                         else:
                             frame.updateValue(curr, dst, e)   
+                    if op == "WRITE":
+                        if child.getAttribute('type') == 'bool' or child.getAttribute('type') == 'nil':
+                            pass
+                        elif child.getAttribute('type') == 'var':
+                            frame.existsVar(curr, e)
+                            frame.printVar(curr, e)
+                        elif child.getAttribute('type') == 'int' or child.getAttribute('type') == 'string':
+                            print(curr, end="")
+                        
 
                 # elif op == "WRITE":
         if op == "CREATEFRAME": 
