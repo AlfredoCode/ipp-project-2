@@ -185,6 +185,12 @@ class Frame:
             elif mode == "IDIV":
                 tmp = int(op1) / int(op2)
                 tmp = int(tmp)
+            elif mode == "AND":
+                # print(bool(op1), bool(op2))
+                tmp = op1 and op2
+            elif mode == "OR":
+                # print(bool(op1), bool(op2))
+                tmp = op1 or op2
             
         except:
             if(op2 == "0"):
@@ -401,12 +407,12 @@ class InstructionParser:
                         frame.dataPush(curr, e)
                     elif op == "POPS":
                         frame.dataPop(curr, e)
-                    elif op == "ADD" or op == "SUB" or op == "MUL" or op == "IDIV":
+                    else:
                         if arg_counter == 1:
                             dst = curr
                         elif arg_counter == 2:
                             op1 = curr
-                        else:
+                        else:   # TODO arithmetic - int only, logic - bool only
                             op2 = curr
                             if op == "ADD":
                                 frame.evaluate(dst, op1, op2, "ADD", e)
@@ -416,6 +422,10 @@ class InstructionParser:
                                 frame.evaluate(dst, op1, op2, "MUL", e) 
                             elif op == "IDIV":
                                 frame.evaluate(dst, op1, op2, "IDIV", e) 
+                            elif op == "AND":
+                                frame.evaluate(dst, op1, op2, "AND", e) 
+                            elif op == "OR":
+                                frame.evaluate(dst, op1, op2, "OR", e)
 
                         
 
