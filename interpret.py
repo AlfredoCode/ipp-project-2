@@ -159,34 +159,36 @@ class Frame:
         self.GF = []
         self.frameStack = []
         self.data = []
-    def addValues(self, dst, op1, op2, e):
+    def checkOperand(self, op, e):
+        op_frame = self.getFrame(op)
+        if op_frame is not None:
+            self.existsFrame(op_frame, e)
+            op = self.strip(op) 
+            for item in op_frame:
+                # print(frame, var, item[0])
+                if item[0] == op:
+                    op = item[1]
+                    print(op)
+        return op
+
+    def addValues(self, dst, op1, op2, mode, e):
         frame = self.getFrame(dst)
         self.existsFrame(frame, e)
-        op1_frame = self.getFrame(op1)
-        op2_frame = self.getFrame(op2)
-        if op1_frame is not None:
-            self.existsFrame(op1_frame, e)
-            op1 = self.strip(op1) 
-            for item in op1_frame:
-                # print(frame, var, item[0])
-                if item[0] == op1:
-                    op1 = item[1]
-                    break
-        if op2_frame is not None:
-            self.existsFrame(op2_frame, e)
-            op2 = self.strip(op2) 
-            for item in op2_frame:
-                # print(frame, var, item[0])
-                if item[0] == op2:
-                    op2 = item[1]
-                    break
+        op1 = self.checkOperand(op1, e)
+        op2 = self.checkOperand(op2, e)
+        # print(op1, op2)
         try:
-            tmp = int(op1) + int(op2)
+            if mode == "SUB":
+                tmp = int(op1) - int(op2)
+            else:
+                tmp = int(op1) + int(op2)
+            
         except:
             e.msg("One or more uninitialized variables!\n")
             exit(e.MISSING_VALUE)
         # print(tmp, frame, dst)
         self.updateValue(str(tmp), dst, e)
+
     def dataPush(self, data, e):
         frame = self.getFrame(data)
         if frame is None:
@@ -392,14 +394,17 @@ class InstructionParser:
                         frame.dataPush(curr, e)
                     elif op == "POPS":
                         frame.dataPop(curr, e)
-                    elif op == "ADD":
+                    elif op == "ADD" or op == "SUB":
                         if arg_counter == 1:
                             dst = curr
                         elif arg_counter == 2:
                             op1 = curr
                         else:
                             op2 = curr
-                            frame.addValues(dst, op1, op2, e)
+                            if op == "ADD":
+                                frame.addValues(dst, op1, op2, "ADD", e)
+                            else:
+                                frame.addValues(dst, op1, op2, "SUB", e)    
 
                         
 
