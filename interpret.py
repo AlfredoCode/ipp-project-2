@@ -170,7 +170,7 @@ class Frame:
                     op = item[1]
         return op
 
-    def evaluate(self, dst, op1, op2, mode, e):
+    def evaluate(self, dst, op1, op2, mode, t1, t2, e):
         frame = self.getFrame(dst)
         self.existsFrame(frame, e)
         op1 = self.checkOperand(op1, e)
@@ -195,6 +195,44 @@ class Frame:
                     tmp = "true"
                 else:
                     tmp = "false"
+            elif mode == "LT":
+                if t1 == "nil" or t2 == "nil":
+                    e.msg("Cannot compare nil value!\n")
+                    exit(e.OPERAND_TYPE)
+                if t1 == "int" and t2 == "int":
+                    tmp = int(op1) < int(op2)
+                elif t1 == "var":
+                    if t2 == "int":
+                        if not op1.isdigit():
+                            e.msg("Expected int and int logic operation!\n")
+                            exit(e.OPERAND_TYPE)
+                        tmp = int(op1) < int(op2)
+                    elif t2 == "bool":
+                        if not (op1 == "false" or op1 == "true"):
+                            e.msg("Expected bool and bool logic operation!\n")
+                            exit(e.OPERAND_TYPE)
+                        tmp = op1 < op2
+                        tmp = str(tmp).lower()
+                    elif t2 == "string":
+                        tmp = op1 < op2
+                        tmp = str(tmp).lower()
+                elif t2 == "var":
+                    if t1 == "int":
+                        if not op2.isdigit():
+                            e.msg("Expected int and int logic operation!\n")
+                            exit(e.OPERAND_TYPE)
+                        tmp = int(op1) < int(op2)
+                    elif t1 == "bool":
+                        if not (op2 == "false" or op2 == "true"):
+                            e.msg("Expected bool and bool logic operation!\n")
+                            exit(e.OPERAND_TYPE)
+                        tmp = op1 < op2
+                        tmp = str(tmp).lower()
+                    elif t1 == "string":
+                        tmp = op1 < op2
+                        tmp = str(tmp).lower()
+                    
+
             
         except:
             if(op2 == "0"):
@@ -416,26 +454,29 @@ class InstructionParser:
                             dst = curr
                         elif arg_counter == 2:
                             op1 = curr
+                            t1 = child.getAttribute('type')
                             if op == "NOT":
                                 frame.evaluate(dst, op1, "", "NOT", e)  
                         else:   # TODO arithmetic - int & var only, logic - bool & var only
                             op2 = curr
+                            t2 = child.getAttribute('type')
                             if op == "ADD":
-                                frame.evaluate(dst, op1, op2, "ADD", e)
+                                frame.evaluate(dst, op1, op2, "ADD", t1, t2, e)
                             elif op == "SUB":
-                                frame.evaluate(dst, op1, op2, "SUB", e)    
+                                frame.evaluate(dst, op1, op2, "SUB", t1, t2, e)    
                             elif op == "MUL":
-                                frame.evaluate(dst, op1, op2, "MUL", e) 
+                                frame.evaluate(dst, op1, op2, "MUL", t1, t2, e) 
                             elif op == "IDIV":
-                                frame.evaluate(dst, op1, op2, "IDIV", e) 
+                                frame.evaluate(dst, op1, op2, "IDIV", t1, t2, e) 
                             elif op == "AND":
-                                frame.evaluate(dst, op1, op2, "AND", e) 
+                                frame.evaluate(dst, op1, op2, "AND", t1, t2, e) 
                             elif op == "OR":
-                                frame.evaluate(dst, op1, op2, "OR", e)
+                                frame.evaluate(dst, op1, op2, "OR", t1, t2, e)
+                            elif op == "LT":
+                                frame.evaluate(dst, op1, op2, "LT", t1, t2, e)
 
                         
 
-                # elif op == "WRITE":
         if op == "CREATEFRAME": 
             frame.createFrame(e)
         elif op == "PUSHFRAME":
