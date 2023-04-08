@@ -120,10 +120,11 @@ class ParseXML:
                             exit(e.XML_STRUCTURE)
             self.count = 0
         
-        self.firstLevel.sort(key=lambda tag: tag.getAttribute('order')) # Sorts the instructions by order
+        self.firstLevel.sort(key=lambda tag: int(tag.getAttribute('order'))) # Sorts the instructions by order
         prev_order = None
         for tag in self.firstLevel:
             curr_order = tag.getAttribute('order')
+            # print(curr_order)
             try:    # Check if order is numeric or not
                 curr_order = int(curr_order)
             except:
@@ -163,7 +164,6 @@ class Frame:
                 break
 
     def appendVar(self, var, e):
-        
         type = self.getFrame(var)
         var = self.strip(var)
 
@@ -213,7 +213,7 @@ class Frame:
             exit(e.FRAME_NOT_EXIST)
     def existsVar(self, var, e):
         frame = self.getFrame(var)
-        print(frame, var)
+        # print(frame, var)
         self.existsFrame(frame, e)
         var = self.strip(var)
         found = False
@@ -270,6 +270,7 @@ class InstructionParser:
         # print(self.element.childNodes)
         arg_counter = 0 
         dst = ""
+        # print(op)
         for child in children:
             for sub_child in child.childNodes:
                 curr = sub_child.nodeValue.strip()
