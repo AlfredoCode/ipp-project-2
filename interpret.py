@@ -46,6 +46,7 @@ class Operands:
             "READ":         2,
             "STRLEN":       2,
             "TYPE":         2,
+            "NOT":          2,
 
             "ADD":          3,
             "SUB":          3,
@@ -56,7 +57,6 @@ class Operands:
             "EQ":           3,
             "AND":          3,
             "OR":           3,
-            "NOT":          3,
             "STRI2INT":     3,
             "CONCAT":       3,
             "GETCHAR":      3,
@@ -189,8 +189,12 @@ class Frame:
                 # print(bool(op1), bool(op2))
                 tmp = op1 and op2
             elif mode == "OR":
-                # print(bool(op1), bool(op2))
                 tmp = op1 or op2
+            elif mode == "NOT":
+                if op1 == "false":
+                    tmp = "true"
+                else:
+                    tmp = "false"
             
         except:
             if(op2 == "0"):
@@ -412,7 +416,9 @@ class InstructionParser:
                             dst = curr
                         elif arg_counter == 2:
                             op1 = curr
-                        else:   # TODO arithmetic - int only, logic - bool only
+                            if op == "NOT":
+                                frame.evaluate(dst, op1, "", "NOT", e)  
+                        else:   # TODO arithmetic - int & var only, logic - bool & var only
                             op2 = curr
                             if op == "ADD":
                                 frame.evaluate(dst, op1, op2, "ADD", e)
