@@ -158,7 +158,30 @@ class Frame:
         self.LF = None
         self.GF = []
         self.frameStack = []
-    
+        self.data = []
+    def dataPush(self, data, e):
+        frame = self.getFrame(data)
+        if frame is None:
+            self.data.append(data)
+        else:
+            self.existsVar(data, e)
+            data = self.strip(data)
+            for item in frame:
+                if item[0] == data:
+                    self.data.append(item[1])
+
+        # print(self.data)
+    def dataPop(self, data, e):
+        frame = self.getFrame(data)
+        self.existsFrame(frame, e)
+        
+        try:
+            popped = self.data.pop()
+        except:
+            e.msg("Cannot pop value, stack is empty!\n")
+            exit(e.MISSING_VALUE)
+        self.updateValue(popped, data, e)
+
     def updateValue(self, value, dst, e):
         frame = self.getFrame(dst)
         dst = self.strip(dst)
@@ -243,7 +266,14 @@ class Frame:
         self.LF = self.frameStack.pop()
         self.TF = None
         self.frameStack.append(self.LF)
-
+    def popFrame(self, e):
+        if self.frameStack == []:
+            e.msg("No LF to pop available!\n")
+            exit(e.FRAME_NOT_EXIST)
+        self.TF = self.frameStack.pop()
+        self.LF = self.frameStack.pop()
+        self.frameStack.append(self.LF)
+        # print(self.LF, self.TF)
 
     def findVar(self, var, frame, e):
         if var in frame:
@@ -306,14 +336,14 @@ class InstructionParser:
                     arg_counter += 1
                     if op == "DEFVAR":
                         frame.appendVar(curr, e)
-                    if op == "MOVE":
+                    elif op == "MOVE":
                         if arg_counter == 1:
                             # print(arg_counter)
                             dst = curr
                             frame.existsVar(dst, e)
                         else:
                             frame.updateValue(curr, dst, e)   
-                    if op == "WRITE":
+                    elif op == "WRITE":
                         if child.getAttribute('type') == 'bool' or child.getAttribute('type') == 'nil':
                             pass
                         elif child.getAttribute('type') == 'var':
@@ -321,6 +351,19 @@ class InstructionParser:
                             frame.printVar(curr, e)
                         elif child.getAttribute('type') == 'int' or child.getAttribute('type') == 'string':
                             print(curr, end="")
+                        # elif child.getAttribute('type') == 'float':
+                        #     print(float.hex(float.fromhex(curr)), end="")
+                    
+                    elif op == "EXIT":
+                        if child.getAttribute('type') == 'int':
+                            exit(int(curr))  
+                        else:
+                            e.msg("Invalid exit code!\n")
+                            exit(e.XML_STRUCTURE)
+                    elif op == "PUSHS":
+                        frame.dataPush(curr, e)
+                    elif op == "POPS":
+                        frame.dataPop(curr, e)
                         
 
                 # elif op == "WRITE":
@@ -328,6 +371,8 @@ class InstructionParser:
             frame.createFrame(e)
         elif op == "PUSHFRAME":
             frame.pushFrame(e)
+        elif op == "POPFRAME":
+            frame.popFrame(e)
 
 
 
