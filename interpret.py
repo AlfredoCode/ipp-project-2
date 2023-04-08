@@ -150,29 +150,74 @@ class Frame:
         self.LF = None
         self.GF = []
         self.frameStack = []
-        
+    
+    def updateValue(self, value, dst, e):
+        frame = self.getFrame(dst)
+        dst = self.strip(dst)
+        valFrame = self.getFrame(value)
+        if valFrame != []:
+            self.existsVar(value, e)
+        for item in frame:
+            if item[0] == dst:
+                item[1] = value  
+                print(item[0], item[1])
+                break
 
-    def appendVar(self, var, type, e):
-        if type == "GF":
+    def appendVar(self, var, e):
+        type = self.getFrame(var)
+        var = self.strip(var)
+        # print(type, var)
+        if type == self.GF:
             self.findVar(var, self.GF, e)
-            self.GF.append(var)
-        elif type == "LF":
+            self.GF.append([var, None])
+        elif type == self.LF:
             if self.LF is None:
                 exit(e.FRAME_NOT_EXIST)
             self.findVar(var, self.LF, e)
-            self.LF.append(var)
-        elif type == "TF":
+            self.LF.append([var, None])
+        elif type == self.TF:
             if self.TF is None:
                 exit(e.FRAME_NOT_EXIST)
             self.findVar(var, self.TF, e)
-            self.TF.append(var)
+            self.TF.append([var, None])
         
+    def getFrame(self, var):
+        pattern_GF = "GF@[^@]+"
+        pattern_TF = "TF@[^@]+"
+        pattern_LF = "LF@[^@]+"
+        frame = None
+        if re.match(pattern_GF, var):
+            frame = self.GF
+        elif re.match(pattern_TF, var):
+            frame = self.TF
+        elif re.match(pattern_LF, var):
+            var = var.replace("LF@", "")  ## PROBLEM PLACE
+            frame = self.LF
+        return frame
+    def strip(self, var):
+        frame = self.getFrame(var) 
+        if frame == self.GF:
+            var = var.replace("GF@", "")  ## PROBLEM PLACE
+        elif frame == self.TF:
+            var = var.replace("TF@", "")  ## PROBLEM PLACE
+        elif frame == self.LF:
+            var = var.replace("LF@", "")  ## PROBLEM PLACE
+        return var
 
     #TODO def existsVar --> UNDEF_VAR
-    def existsVar(self, var, frame, e):
-        if var not in frame:
+    def existsVar(self, var, e):
+        frame = self.getFrame(var)
+        var = self.strip(var)
+        found = False
+        for item in frame:
+            # print(frame, var, item[0])
+            if item[0] == var:
+                found = True
+                break
+        if not found:
             e.msg("Using undefined variable, probably missing DEFVAR\n")
             exit(e.UNDEF_VAR)
+        
     def pushFrame(self, e):
         if self.TF is None:
             e.msg("TF cannot be pushed since it does not exist.\n")
@@ -189,14 +234,18 @@ class Frame:
             exit(e.SEMANTIC)
 
     def listAll(self, e):
-        for var in self.GF:
-            e.msg(var+"\n")
+        if self.LF is not []:
+            e.msg("@@@ GF Variables @@@\n")
+            for var in self.GF:
+                e.msg("\t"+str(var)+"\n")
         if self.LF is not None:
+            e.msg("@@@ LF Variables @@@\n")
             for var in self.LF:
-                e.msg(var+"\n")
+                e.msg("\t"+str(var)+"\n")
         if self.TF is not None:
+            e.msg("@@@ TF Variables @@@\n")
             for var in self.TF:
-                e.msg(var+"\n")
+                e.msg("\t"+str(var)+"\n")
     def createFrame(self, e):
         if self.TF is None:
             self.TF = []
@@ -211,25 +260,24 @@ class InstructionParser:
         children = self.element.childNodes
         # print(op)
         # print(self.element.childNodes)
-        pattern_GF = "GF@[^@]+"
-        pattern_TF = "TF@[^@]+"
-        pattern_LF = "LF@[^@]+"
+        arg_counter = 0 
+        dst = ""
         for child in children:
-                
+              
             for sub_child in child.childNodes:
                 curr = sub_child.nodeValue.strip()
                 # print(curr)
-                
+                arg_counter += 1
                 if op == "DEFVAR":
-                    if re.match(pattern_GF, curr):
-                        curr = curr.replace("GF@", "")  ## PROBLEM PLACE
-                        frame.appendVar(curr, "GF", e)
-                    if re.match(pattern_TF, curr):
-                        curr = curr.replace("TF@", "")  ## PROBLEM PLACE
-                        frame.appendVar(curr, "TF", e)
-                    if re.match(pattern_LF, curr):
-                        curr = curr.replace("LF@", "")  ## PROBLEM PLACE
-                        frame.appendVar(curr, "LF", e)
+                    frame.appendVar(curr, e)
+                if op == "MOVE":
+                    if arg_counter == 1:
+                        # print(arg_counter)
+                        dst = curr
+                        frame.existsVar(curr, e)
+                    else:
+                        frame.updateValue(curr, dst, e)   
+
                 # elif op == "WRITE":
 
             if op == "CREATEFRAME": 
