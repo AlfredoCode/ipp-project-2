@@ -155,12 +155,11 @@ class Frame:
         frame = self.getFrame(dst)
         dst = self.strip(dst)
         valFrame = self.getFrame(value)
-        if valFrame != []:
+        if valFrame != None:
             self.existsVar(value, e)
         for item in frame:
             if item[0] == dst:
                 item[1] = value  
-                print(item[0], item[1])
                 break
 
     def appendVar(self, var, e):
@@ -205,8 +204,13 @@ class Frame:
         return var
 
     #TODO def existsVar --> UNDEF_VAR
+    def existsFrame(self, frame, e):
+        if frame is None:
+            e.msg("Frame does not exist!\n")
+            exit(e.FRAME_NOT_EXIST)
     def existsVar(self, var, e):
         frame = self.getFrame(var)
+        self.existsFrame(frame, e)
         var = self.strip(var)
         found = False
         for item in frame:
