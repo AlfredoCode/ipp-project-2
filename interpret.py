@@ -168,24 +168,31 @@ class Frame:
                 # print(frame, var, item[0])
                 if item[0] == op:
                     op = item[1]
-                    print(op)
         return op
 
-    def addValues(self, dst, op1, op2, mode, e):
+    def evaluate(self, dst, op1, op2, mode, e):
         frame = self.getFrame(dst)
         self.existsFrame(frame, e)
         op1 = self.checkOperand(op1, e)
         op2 = self.checkOperand(op2, e)
-        # print(op1, op2)
         try:
             if mode == "SUB":
                 tmp = int(op1) - int(op2)
-            else:
+            elif mode == "ADD":
                 tmp = int(op1) + int(op2)
+            elif mode == "MUL":
+                tmp = int(op1) * int(op2)
+            elif mode == "IDIV":
+                tmp = int(op1) / int(op2)
+                tmp = int(tmp)
             
         except:
-            e.msg("One or more uninitialized variables!\n")
-            exit(e.MISSING_VALUE)
+            if(op2 == "0"):
+                e.msg("Zero division not allowed!\n")
+                exit(e.RUNTIME_VALUE)
+            else:
+                e.msg("One or more uninitialized variables!\n")
+                exit(e.MISSING_VALUE)
         # print(tmp, frame, dst)
         self.updateValue(str(tmp), dst, e)
 
@@ -394,7 +401,7 @@ class InstructionParser:
                         frame.dataPush(curr, e)
                     elif op == "POPS":
                         frame.dataPop(curr, e)
-                    elif op == "ADD" or op == "SUB":
+                    elif op == "ADD" or op == "SUB" or op == "MUL" or op == "IDIV":
                         if arg_counter == 1:
                             dst = curr
                         elif arg_counter == 2:
@@ -402,9 +409,13 @@ class InstructionParser:
                         else:
                             op2 = curr
                             if op == "ADD":
-                                frame.addValues(dst, op1, op2, "ADD", e)
-                            else:
-                                frame.addValues(dst, op1, op2, "SUB", e)    
+                                frame.evaluate(dst, op1, op2, "ADD", e)
+                            elif op == "SUB":
+                                frame.evaluate(dst, op1, op2, "SUB", e)    
+                            elif op == "MUL":
+                                frame.evaluate(dst, op1, op2, "MUL", e) 
+                            elif op == "IDIV":
+                                frame.evaluate(dst, op1, op2, "IDIV", e) 
 
                         
 
