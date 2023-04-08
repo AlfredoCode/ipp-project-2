@@ -93,8 +93,11 @@ class ParseXML:
                 self.firstLevel.append(child)
                 # Instruicton <arg> elements check
                 new = []
-                for sub in child.childNodes:
-                    
+
+                sorted_children = sorted((node for node in child.childNodes if node.nodeType == node.ELEMENT_NODE), key=lambda child: child.tagName)
+
+
+                for sub in sorted_children:
                     # print(child.getAttribute('opcode'))
                     # print(self.count)
                     try:
@@ -110,6 +113,7 @@ class ParseXML:
                         self.count += 1
                         arg_pattern = "arg["+str(self.count)+"]"
                         if sub.tagName not in new:
+                            # print(sub.tagName)
                             if re.match(arg_pattern, sub.tagName):
                                 new.append(sub.tagName)
                             else:
@@ -118,9 +122,15 @@ class ParseXML:
                         else:
                             e.msg("Arguments of same number not allowed!\n")
                             exit(e.XML_STRUCTURE)
+                    if self.count < ope.operands[child.getAttribute('opcode')]:
+                            e.msg("Invalid number of arguments for instruction!\n")
+                            exit(e.XML_STRUCTURE)
             self.count = 0
-        
-        self.firstLevel.sort(key=lambda tag: int(tag.getAttribute('order'))) # Sorts the instructions by order
+        try:
+            self.firstLevel.sort(key=lambda tag: int(tag.getAttribute('order'))) # Sorts the instructions by order
+        except:
+            e.msg("Order value is not integer number!\n")
+            exit(e.XML_STRUCTURE) 
         prev_order = None
         for tag in self.firstLevel:
             curr_order = tag.getAttribute('order')
@@ -227,6 +237,7 @@ class Frame:
             exit(e.UNDEF_VAR)
         
     def pushFrame(self, e):
+        # print(self.frameStack)
         if self.TF is None:
             e.msg("TF cannot be pushed since it does not exist.\n")
             exit(e.FRAME_NOT_EXIST)
@@ -234,6 +245,7 @@ class Frame:
         self.frameStack.append(self.TF)
         self.LF = self.frameStack.pop()
         self.TF = None
+        self.frameStack.append(self.LF)
 
 
     def findVar(self, var, frame, e):
@@ -254,6 +266,11 @@ class Frame:
             e.msg("@@@ TF Variables @@@\n")
             for var in self.TF:
                 e.msg("\t"+str(var)+"\n")
+        if self.frameStack != []:
+            e.msg("@@@ Frame Stack @@@\n")   
+            for var in self.frameStack:
+                e.msg("\t"+str(var)+"\n")
+        
     def createFrame(self, e):
         if self.TF is None:
             self.TF = []
@@ -265,26 +282,30 @@ class InstructionParser:
         
     def execute(self, e, frame):
         op = self.opcode
-        children = self.element.childNodes
+        children = [node for node in self.element.childNodes if node.nodeType == node.ELEMENT_NODE]
+        sorted_children = sorted(children, key=lambda node: node.tagName)
+
         # print(op)
         # print(self.element.childNodes)
         arg_counter = 0 
         dst = ""
         # print(op)
-        for child in children:
-            for sub_child in child.childNodes:
-                curr = sub_child.nodeValue.strip()
-                # print(curr)
-                arg_counter += 1
-                if op == "DEFVAR":
-                    frame.appendVar(curr, e)
-                if op == "MOVE":
-                    if arg_counter == 1:
-                        # print(arg_counter)
-                        dst = curr
-                        frame.existsVar(dst, e)
-                    else:
-                        frame.updateValue(curr, dst, e)   
+        for child in sorted_children:
+            if child.nodeType == child.ELEMENT_NODE:
+                # print(child.tagName)
+                for sub_child in child.childNodes:
+                    curr = sub_child.nodeValue.strip()
+                    # print(curr)
+                    arg_counter += 1
+                    if op == "DEFVAR":
+                        frame.appendVar(curr, e)
+                    if op == "MOVE":
+                        if arg_counter == 1:
+                            # print(arg_counter)
+                            dst = curr
+                            frame.existsVar(dst, e)
+                        else:
+                            frame.updateValue(curr, dst, e)   
 
                 # elif op == "WRITE":
         if op == "CREATEFRAME": 
