@@ -160,6 +160,7 @@ class Frame:
         self.frameStack = []
         self.data = []
         self.insList = []
+        self.labelList = []
     def checkOperand(self, op, e):
         op_frame = self.getFrame(op)
         if op_frame is not None:
@@ -394,6 +395,18 @@ class Frame:
                 exit(e.FRAME_NOT_EXIST)
             self.findVar(var, self.TF, e)
             self.TF.append([var, None])
+    def appendLabel(self, label, e):
+        if self.insList == []:
+            pos = 0
+        else:
+            pos = self.insList[-1]
+            pos = pos[1]
+        for lab in self.labelList:
+            # print(lab[0], label)
+            if lab[0] == label:
+                e.msg("LABEL redefinition not allowed!\n")
+                exit(e.SEMANTIC)
+        self.labelList.append((label, pos))
         
     def getFrame(self, var):
         
@@ -524,26 +537,31 @@ class Frame:
                     
     def listAll(self, e):   # Lists all variables in all available frames -- DEBUG INFO
         insCount = len(self.insList)
-        e.msg(f">>> Number of used instructions: {insCount} <<<\n")
+        e.msg(f">>> Number of used instructions: {insCount}\n")
         if self.LF is not []:
-            e.msg("@@@ GF Variables @@@\n")
+            e.msg(">>> GF Variables\n")
             for var in self.GF:
                 e.msg("\t"+str(var)+"\n")
         if self.LF is not None:
-            e.msg("@@@ LF Variables @@@\n")
+            e.msg(">>> LF Variables\n")
             for var in self.LF:
                 e.msg("\t"+str(var)+"\n")
         if self.TF is not None:
-            e.msg("@@@ TF Variables @@@\n")
+            e.msg(">>> TF Variables\n")
             for var in self.TF:
                 e.msg("\t"+str(var)+"\n")
         if self.frameStack != []:
-            e.msg("@@@ Frame Stack @@@\n")   
+            e.msg(">>> Frame Stack\n")   
             for var in self.frameStack:
                 e.msg("\t"+str(var)+"\n")
-    
+        self.allLabels(e)
+        self.allInstructions(e)
+    def allLabels(self, e):
+        e.msg(">>> Label List\n")   
+        for var in self.labelList:
+            e.msg("\t"+str(var)+"\n")
     def allInstructions(self, e):
-        e.msg("@@@ Used instructions so far @@@\n")
+        e.msg(">>> Used instructions so far\n")
         allIns = self.insList
         
         for var in allIns:
@@ -611,6 +629,8 @@ class InstructionParser:
                         if t1 == "var":
                             frame.existsVar(curr, e)
                         frame.printVar(curr, t1, "stderr", e)   
+                    elif op == "LABEL":
+                            frame.appendLabel(curr, e)
                     else:
                         if arg_counter == 1:
                             dst = curr
@@ -625,6 +645,7 @@ class InstructionParser:
                                 frame.getLength(dst, op1, e)
                             elif op == "TYPE":
                                 frame.getType(dst, op1, e)
+                            
                         else:   # TODO arithmetic - int & var only, logic - bool & var only
                             op2 = curr
                             t2 = child.getAttribute('type')
@@ -666,7 +687,6 @@ class InstructionParser:
             frame.popFrame(e)
         elif op == "BREAK":
             frame.listAll(e)
-            frame.allInstructions(e)
             exit(0)
 
 
