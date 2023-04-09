@@ -197,57 +197,76 @@ class Frame:
                     tmp = "false"
             elif mode == "LT" or mode == "GT" or mode == "EQ":
                 if t1 == "nil" or t2 == "nil":
-                    e.msg("Cannot compare nil value!\n")
-                    exit(e.OPERAND_TYPE)
-                if t1 == "int" and t2 == "int":
+                    if mode == "EQ":
+                        tmp = op1 == op2
+                    else:
+                        e.msg("Cannot compare nil value with LT or GT!\n")
+                        exit(e.OPERAND_TYPE)
+                elif t1 == "int" and t2 == "int":
                     if mode == "LT":
                         tmp = int(op1) < int(op2)
                     elif mode == "GT":
                         tmp = int(op1) > int(op2)    
                 elif t1 == "var":
                     if t2 == "int":
-                        if not op1.isdigit():
-                            e.msg("Expected int and int logic operation!\n")
-                            exit(e.OPERAND_TYPE)
-                        if mode == "LT":
-                            tmp = int(op1) < int(op2)
-                        elif mode == "GT":
-                            tmp = int(op1) > int(op2) 
+                        if op1 != "nil":
+                            if not op1.isdigit():
+                                e.msg("Expected int and int logic operation!\n")
+                                exit(e.OPERAND_TYPE)
+                            if mode == "LT":
+                                tmp = int(op1) < int(op2)
+                            elif mode == "GT":
+                                tmp = int(op1) > int(op2) 
+                        else:
+                            tmp = op1 == op2
                     elif t2 == "bool":
-                        if not (op1 == "false" or op1 == "true"):
-                            e.msg("Expected bool and bool logic operation!\n")
-                            exit(e.OPERAND_TYPE)
-                        if mode == "LT":
-                            tmp = op1 < op2
-                        elif mode == "GT":
-                            tmp = op1 > op2
+                        if op1 != "nil":
+                            if not (op1 == "false" or op1 == "true"):
+                                e.msg("Expected bool and bool logic operation!\n")
+                                exit(e.OPERAND_TYPE)
+                            if mode == "LT":
+                                tmp = op1 < op2
+                            elif mode == "GT":
+                                tmp = op1 > op2
+                        else:
+                            tmp = op1 == op2
                     elif t2 == "string":
-                        if mode == "LT":
-                            tmp = op1 < op2
-                        elif mode == "GT":
-                            tmp = op1 > op2
+                        if op1 != "nil":
+                            if mode == "LT":
+                                tmp = op1 < op2
+                            elif mode == "GT":
+                                tmp = op1 > op2
                 elif t2 == "var":
                     if t1 == "int":
-                        if not op2.isdigit():
-                            e.msg("Expected int and int logic operation!\n")
-                            exit(e.OPERAND_TYPE)
-                        if mode == "LT":
-                            tmp = int(op1) < int(op2)
-                        elif mode == "GT":
-                            tmp = int(op1) > int(op2)   
+                        if op2 != "nil":
+                            if not op2.isdigit():
+                                e.msg("Expected int and int logic operation!\n")
+                                exit(e.OPERAND_TYPE)
+                            if mode == "LT":
+                                tmp = int(op1) < int(op2)
+                            elif mode == "GT":
+                                tmp = int(op1) > int(op2)   
+                        else:
+                            tmp = op1 == op2
                     elif t1 == "bool":
-                        if not (op2 == "false" or op2 == "true"):
-                            e.msg("Expected bool and bool logic operation!\n")
-                            exit(e.OPERAND_TYPE)
-                        if mode == "LT":
-                            tmp = op1 < op2
-                        elif mode == "GT":
-                            tmp = op1 > op2
+                        if op2 != "nil":
+                            if not (op2 == "false" or op2 == "true"):
+                                e.msg("Expected bool and bool logic operation!\n")
+                                exit(e.OPERAND_TYPE)
+                            if mode == "LT":
+                                tmp = op1 < op2
+                            elif mode == "GT":
+                                tmp = op1 > op2
+                        else:
+                            tmp = op1 == op2
                     elif t1 == "string":
-                        if mode == "LT":
-                            tmp = op1 < op2
-                        elif mode == "GT":
-                            tmp = op1 > op2
+                        if op2 != "nil":
+                            if mode == "LT":
+                                tmp = op1 < op2
+                            elif mode == "GT":
+                                tmp = op1 > op2
+                        else:
+                            tmp = op1 == op2
                     
 
             
@@ -339,7 +358,6 @@ class Frame:
             var = var.replace("LF@", "")  ## PROBLEM PLACE
         return var
 
-    #TODO def existsVar --> UNDEF_VAR
     def existsFrame(self, frame, e):
         if frame is None:
             e.msg("Frame does not exist!\n")
@@ -494,6 +512,8 @@ class InstructionParser:
                                 frame.evaluate(dst, op1, op2, "LT", t1, t2, e)
                             elif op == "GT":
                                 frame.evaluate(dst, op1, op2, "GT", t1, t2, e)
+                            elif op == "EQ":
+                                frame.evaluate(dst, op1, op2, "EQ", t1, t2, e)
 
                         
 
