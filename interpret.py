@@ -430,7 +430,17 @@ class Frame:
             e.msg("Wrong value to convert!\n")
             exit(e.RUNTIME_STRING)
         self.updateValue(tmp, dst, e)
-        
+    def getLength(self, dst, op1, e):
+        self.existsVar(dst, e)
+        try:
+            if op1 == "":
+                tmp = 0
+            else:    
+                tmp = len(op1)
+        except:
+            e.msg("Something wrong happened when executing STRLEN!\n")
+            exit(e.RUNTIME_STRING)
+        self.updateValue(str(tmp), dst, e)
 
     def listAll(self, e):   # Lists all variables in all available frames -- DEBUG INFO
         if self.LF is not []:
@@ -472,6 +482,7 @@ class InstructionParser:
             if child.nodeType == child.ELEMENT_NODE:
                 # print(child.tagName)
                 for sub_child in child.childNodes:
+                    # print(child.tagName)
                     curr = sub_child.nodeValue.strip()
                     # print(curr)
                     arg_counter += 1
@@ -521,6 +532,8 @@ class InstructionParser:
                                 frame.evaluate(dst, op1, "", "NOT", e)  
                             elif op == "INT2CHAR":
                                 frame.convertInt(dst, op1, e)
+                            elif op == "STRLEN":
+                                frame.getLength(dst, op1, e)
                         else:   # TODO arithmetic - int & var only, logic - bool & var only
                             op2 = curr
                             t2 = child.getAttribute('type')
@@ -544,8 +557,9 @@ class InstructionParser:
                                 frame.evaluate(dst, op1, op2, "EQ", t1, t2, e)
                             elif op == "STRI2INT":
                                 frame.evaluate(dst, op1, op2, "STRI2INT", t1, t2, e)
-
-                        
+                
+                if op == "STRLEN" and child.childNodes.length + 1 == 1: # empty string
+                    frame.getLength(dst, "", e)
 
         if op == "CREATEFRAME": 
             frame.createFrame(e)
