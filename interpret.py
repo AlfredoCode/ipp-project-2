@@ -159,6 +159,7 @@ class Frame:
         self.GF = []
         self.frameStack = []
         self.data = []
+        self.insList = []
     def checkOperand(self, op, e):
         op_frame = self.getFrame(op)
         if op_frame is not None:
@@ -522,6 +523,8 @@ class Frame:
         self.updateValue(str(type), dst, e)
                     
     def listAll(self, e):   # Lists all variables in all available frames -- DEBUG INFO
+        insCount = len(self.insList)
+        e.msg(f">>> Number of used instructions: {insCount} <<<\n")
         if self.LF is not []:
             e.msg("@@@ GF Variables @@@\n")
             for var in self.GF:
@@ -538,7 +541,14 @@ class Frame:
             e.msg("@@@ Frame Stack @@@\n")   
             for var in self.frameStack:
                 e.msg("\t"+str(var)+"\n")
+    
+    def allInstructions(self, e):
+        e.msg("@@@ Used instructions so far @@@\n")
+        allIns = self.insList
         
+        for var in allIns:
+            var = (var[0].getAttribute('opcode'),) + var[1:]    
+            e.msg("\t"+str(var)+"\n")
     def createFrame(self, e):
         self.TF = []
 
@@ -656,6 +666,7 @@ class InstructionParser:
             frame.popFrame(e)
         elif op == "BREAK":
             frame.listAll(e)
+            frame.allInstructions(e)
             exit(0)
 
 
@@ -687,10 +698,12 @@ class Prog:
     root = DOM.documentElement
 
     xl.processXML(root, e)
+    pos = 1
     for tag in xl.firstLevel:
-        
         ins = InstructionParser(tag) # New instance of instruction
+        frame.insList.append((tag, pos))
         ins.execute(e, frame)
+        pos += 1
         # print(f"Order: {tag.getAttribute('order')} Instruction: {tag.getAttribute('opcode')}")
     # frame.listAll(e)
 if __name__ == '__main__':
