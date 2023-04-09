@@ -654,6 +654,9 @@ class InstructionParser:
             frame.pushFrame(e)
         elif op == "POPFRAME":
             frame.popFrame(e)
+        elif op == "BREAK":
+            frame.listAll(e)
+            exit(0)
 
 
 
@@ -689,6 +692,6 @@ class Prog:
         ins = InstructionParser(tag) # New instance of instruction
         ins.execute(e, frame)
         # print(f"Order: {tag.getAttribute('order')} Instruction: {tag.getAttribute('opcode')}")
-    frame.listAll(e)
+    # frame.listAll(e)
 if __name__ == '__main__':
     Prog()
