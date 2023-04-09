@@ -419,6 +419,15 @@ class Frame:
                     break 
         else:
             sys.stderr.write(var)
+    def convertInt(self, dst, value, e):
+        self.existsVar(dst, e)
+        try:
+            tmp = chr(int(value))
+        except:
+            e.msg("Wrong value to convert!\n")
+            exit(e.RUNTIME_STRING)
+        self.updateValue(tmp, dst, e)
+
 
     def listAll(self, e):   # Lists all variables in all available frames -- DEBUG INFO
         if self.LF is not []:
@@ -507,6 +516,8 @@ class InstructionParser:
                             t1 = child.getAttribute('type')
                             if op == "NOT":
                                 frame.evaluate(dst, op1, "", "NOT", e)  
+                            elif op == "INT2CHAR":
+                                frame.convertInt(dst, op1, e)
                         else:   # TODO arithmetic - int & var only, logic - bool & var only
                             op2 = curr
                             t2 = child.getAttribute('type')

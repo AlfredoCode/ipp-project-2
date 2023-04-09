@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="IPPcode23" name="correct">
+	<instruction order="1" opcode="DEFVAR">
+		<arg1 type="var">GF@x1</arg1>
+	</instruction>
+    <instruction order="2" opcode="INT2CHAR">
+		<arg1 type="var">GF@x1</arg1>
+        <arg2 type="int">97</arg2>
+	</instruction>
+    <instruction order="3" opcode="WRITE">
+		<arg1 type="var">GF@x1</arg1>
+	</instruction>
+    <instruction order="4" opcode="DEFVAR">
+		<arg1 type="var">GF@x2</arg1>
+	</instruction>
+    <instruction order="5" opcode="DEFVAR">
+		<arg1 type="var">GF@x3</arg1>
+	</instruction>
+    <instruction order="6" opcode="DEFVAR">
+		<arg1 type="var">GF@x4</arg1>
+	</instruction>
+    <instruction order="7" opcode="INT2CHAR">
+		<arg1 type="var">GF@x2</arg1>
+        <arg2 type="int">98</arg2>
+	</instruction>
+    <instruction order="8" opcode="INT2CHAR">
+		<arg1 type="var">GF@x3</arg1>
+        <arg2 type="int">99</arg2>
+	</instruction>
+    <instruction order="9" opcode="INT2CHAR">
+		<arg1 type="var">GF@x4</arg1>
+        <arg2 type="int">100</arg2>
+	</instruction>
+    <instruction order="10" opcode="WRITE">
+		<arg1 type="var">GF@x2</arg1>
+	</instruction>
+    <instruction order="11" opcode="WRITE">
+		<arg1 type="var">GF@x3</arg1>
+	</instruction>
+    <instruction order="12" opcode="WRITE">
+		<arg1 type="var">GF@x4</arg1>
+	</instruction>
+
+</program>
