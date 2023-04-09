@@ -267,13 +267,16 @@ class Frame:
                                 tmp = op1 > op2
                         else:
                             tmp = op1 == op2
-                    
-
-            
+            elif mode == "STRI2INT":
+                wanted = op1[int(op2)]
+                tmp = ord(wanted)
         except:
-            if(op2 == "0"):
+            if mode == "IDIV":
                 e.msg("Zero division not allowed!\n")
                 exit(e.RUNTIME_VALUE)
+            elif mode == "STRI2INT":
+                    e.msg("Cannot convert the character into ordinary value or index out of bounds!\n")
+                    exit(e.RUNTIME_STRING)
             else:
                 e.msg("One or more uninitialized variables!\n")
                 exit(e.MISSING_VALUE)
@@ -427,7 +430,7 @@ class Frame:
             e.msg("Wrong value to convert!\n")
             exit(e.RUNTIME_STRING)
         self.updateValue(tmp, dst, e)
-
+        
 
     def listAll(self, e):   # Lists all variables in all available frames -- DEBUG INFO
         if self.LF is not []:
@@ -539,6 +542,8 @@ class InstructionParser:
                                 frame.evaluate(dst, op1, op2, "GT", t1, t2, e)
                             elif op == "EQ":
                                 frame.evaluate(dst, op1, op2, "EQ", t1, t2, e)
+                            elif op == "STRI2INT":
+                                frame.evaluate(dst, op1, op2, "STRI2INT", t1, t2, e)
 
                         
 
