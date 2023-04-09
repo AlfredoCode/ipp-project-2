@@ -175,6 +175,7 @@ class Frame:
         self.existsFrame(frame, e)
         op1 = self.checkOperand(op1, e)
         op2 = self.checkOperand(op2, e)
+        diff = False
         try:
             if mode == "SUB":
                 tmp = int(op1) - int(op2)
@@ -196,7 +197,7 @@ class Frame:
                 else:
                     tmp = "false"
             elif mode == "LT" or mode == "GT" or mode == "EQ" or mode == "CONCAT":
-                diff = False
+                
                 if t1 == "nil" or t2 == "nil":
                     if mode == "EQ":
                         tmp = op1 == op2
@@ -485,7 +486,30 @@ class Frame:
             e.msg("Something wrong happened when executing STRLEN!\n")
             exit(e.RUNTIME_STRING)
         self.updateValue(str(tmp), dst, e)
-
+    def getType(self, dst, op1, e):
+        frame = self.getFrame(op1)
+        type = ""
+        if frame is not None:
+            self.existsFrame(frame, e)
+            op1 = self.strip(op1) 
+            for item in frame:
+                # print(frame, var, item[0])
+                if item[0] == op1:
+                    op1 = item[1]
+                    break
+        if op1 is None:
+            type = ""
+        elif not op1.isdigit():
+            if op1 == "true" or op1 == "false":
+                type = "bool"
+            elif op1 == "nil":
+                type = "nil"
+            else:
+                type = "string"
+        else:
+            type = "int"
+        self.updateValue(str(type), dst, e)
+                    
     def listAll(self, e):   # Lists all variables in all available frames -- DEBUG INFO
         if self.LF is not []:
             e.msg("@@@ GF Variables @@@\n")
@@ -578,6 +602,8 @@ class InstructionParser:
                                 frame.convertInt(dst, op1, e)
                             elif op == "STRLEN":
                                 frame.getLength(dst, op1, e)
+                            elif op == "TYPE":
+                                frame.getType(dst, op1, e)
                         else:   # TODO arithmetic - int & var only, logic - bool & var only
                             op2 = curr
                             t2 = child.getAttribute('type')
