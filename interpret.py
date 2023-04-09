@@ -312,11 +312,13 @@ class Frame:
             elif mode == "STRI2INT":
                 wanted = op1[int(op2)]
                 tmp = ord(wanted)
+            elif mode == "GETCHAR":
+                tmp = op1[int(op2)]
         except:
             if mode == "IDIV":
                 e.msg("Zero division not allowed!\n")
                 exit(e.RUNTIME_VALUE)
-            elif mode == "STRI2INT":
+            elif mode == "STRI2INT" or mode == "GETCHAR":
                     e.msg("Cannot convert the character into ordinary value or index out of bounds!\n")
                     exit(e.RUNTIME_STRING)
             elif diff == True:
@@ -629,6 +631,8 @@ class InstructionParser:
                                 frame.evaluate(dst, op1, op2, "STRI2INT", t1, t2, e)
                             elif op == "CONCAT":
                                 frame.evaluate(dst, op1, op2, "CONCAT", t1, t2, e)
+                            elif op == "GETCHAR":
+                                frame.evaluate(dst, op1, op2, "GETCHAR", t1, t2, e)
                 
                 if op == "STRLEN" and child.childNodes.length + 1 == 1: # empty string
                     frame.getLength(dst, "", e)
