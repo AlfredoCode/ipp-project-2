@@ -195,7 +195,8 @@ class Frame:
                     tmp = "true"
                 else:
                     tmp = "false"
-            elif mode == "LT" or mode == "GT" or mode == "EQ":
+            elif mode == "LT" or mode == "GT" or mode == "EQ" or mode == "CONCAT":
+                diff = False
                 if t1 == "nil" or t2 == "nil":
                     if mode == "EQ":
                         tmp = op1 == op2
@@ -206,7 +207,40 @@ class Frame:
                     if mode == "LT":
                         tmp = int(op1) < int(op2)
                     elif mode == "GT":
-                        tmp = int(op1) > int(op2)    
+                        tmp = int(op1) > int(op2) 
+                    elif mode == "EQ":
+                        tmp = int(op1) == int(op2) 
+                    else:
+                        diff = True
+                        exit(e.OPERAND_TYPE)
+                elif t1 == "bool" and t2 == "bool":
+                    if mode == "LT":
+                        tmp = op1 < op2
+                    elif mode == "GT":
+                        tmp = op1 > op2 
+                    elif mode == "EQ":
+                        tmp = op1 == op2 
+                    else:
+                        diff = True
+                        exit(e.OPERAND_TYPE)
+
+                elif t1 == "string" and t2 == "string": # string & string only
+                    if mode == "LT":
+                        tmp = op1 < op2
+                    elif mode == "GT":
+                        tmp = op1 > op2 
+                    elif mode == "CONCAT":
+                        tmp = op1 + op2 # concatenated string    
+                    elif mode == "EQ":
+                        tmp = op1 == op2
+                    else:
+                        diff = True
+                        exit(e.OPERAND_TYPE)
+                elif t1 != t2 and (t1 != "var" or t2 != "var" or t1 != "nil" or t2 != "nil"):
+                    diff = True
+                    exit(e.OPERAND_TYPE)
+
+
                 elif t1 == "var":
                     if t2 == "int":
                         if op1 != "nil":
@@ -236,6 +270,10 @@ class Frame:
                                 tmp = op1 < op2
                             elif mode == "GT":
                                 tmp = op1 > op2
+                            elif mode == "CONCAT":
+                                tmp = op1 + op2 # concatenated string
+                        else:
+                            tmp = op1 == op2
                 elif t2 == "var":
                     if t1 == "int":
                         if op2 != "nil":
@@ -265,8 +303,11 @@ class Frame:
                                 tmp = op1 < op2
                             elif mode == "GT":
                                 tmp = op1 > op2
+                            elif mode == "CONCAT":
+                                tmp = op1 + op2 # concatenated string
                         else:
                             tmp = op1 == op2
+                    
             elif mode == "STRI2INT":
                 wanted = op1[int(op2)]
                 tmp = ord(wanted)
@@ -277,6 +318,9 @@ class Frame:
             elif mode == "STRI2INT":
                     e.msg("Cannot convert the character into ordinary value or index out of bounds!\n")
                     exit(e.RUNTIME_STRING)
+            elif diff == True:
+                e.msg("Cannot perform operations with different types or types other than string!\n")
+                exit(e.OPERAND_TYPE)
             else:
                 e.msg("One or more uninitialized variables!\n")
                 exit(e.MISSING_VALUE)
@@ -557,6 +601,8 @@ class InstructionParser:
                                 frame.evaluate(dst, op1, op2, "EQ", t1, t2, e)
                             elif op == "STRI2INT":
                                 frame.evaluate(dst, op1, op2, "STRI2INT", t1, t2, e)
+                            elif op == "CONCAT":
+                                frame.evaluate(dst, op1, op2, "CONCAT", t1, t2, e)
                 
                 if op == "STRLEN" and child.childNodes.length + 1 == 1: # empty string
                     frame.getLength(dst, "", e)
