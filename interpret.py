@@ -400,16 +400,25 @@ class Frame:
         if var in frame:
             e.msg("Variable cannot be redefined, probably used DEFVAR on same var\n")
             exit(e.SEMANTIC)
-    def printVar(self, var, e):
-        frame = self.getFrame(var)
-        # print(frame, var)
-        self.existsFrame(frame, e)
-        var = self.strip(var) 
-        for item in frame:
-            # print(frame, var, item[0])
-            if item[0] == var:
-                print(item[1], end="")
-                break 
+    def printVar(self, var, t1, mode, e):   # Existence of variable needs to be checked before calling the method
+        if t1 == "var":
+            frame = self.getFrame(var)
+            # print(frame, var)
+            self.existsFrame(frame, e)
+            var = self.strip(var) 
+            for item in frame:
+                # print(frame, var, item[0])
+                if item[0] == var:
+                    if mode == "normal":
+                        if item[1] is None:
+                            e.msg("Variable not initialized!\n")
+                            exit(e.MISSING_VALUE)
+                        print(item[1], end="")
+                    elif mode == "stderr":
+                        sys.stderr.write(item[1])
+                    break 
+        else:
+            sys.stderr.write(var)
 
     def listAll(self, e):   # Lists all variables in all available frames -- DEBUG INFO
         if self.LF is not []:
@@ -430,8 +439,7 @@ class Frame:
                 e.msg("\t"+str(var)+"\n")
         
     def createFrame(self, e):
-        if self.TF is None:
-            self.TF = []
+        self.TF = []
 
 class InstructionParser:
     def __init__(self, element):
@@ -465,11 +473,12 @@ class InstructionParser:
                         else:
                             frame.updateValue(curr, dst, e)   
                     elif op == "WRITE":
+                        t1 = child.getAttribute('type')
                         if child.getAttribute('type') == 'bool' or child.getAttribute('type') == 'nil':
                             pass
                         elif child.getAttribute('type') == 'var':
                             frame.existsVar(curr, e)
-                            frame.printVar(curr, e)
+                            frame.printVar(curr, t1, "normal", e)
                         elif child.getAttribute('type') == 'int' or child.getAttribute('type') == 'string':
                             print(curr, end="")
                         # elif child.getAttribute('type') == 'float':
@@ -485,6 +494,11 @@ class InstructionParser:
                         frame.dataPush(curr, e)
                     elif op == "POPS":
                         frame.dataPop(curr, e)
+                    elif op == "DPRINT":
+                        t1 = child.getAttribute('type')
+                        if t1 == "var":
+                            frame.existsVar(curr, e)
+                        frame.printVar(curr, t1, "stderr", e)   
                     else:
                         if arg_counter == 1:
                             dst = curr

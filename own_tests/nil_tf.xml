@@ -23,8 +23,7 @@
         <arg1 type="var">GF@var</arg1>
         <arg2 type="int">6</arg2>
         <arg3 type="var">GF@var</arg3>
-    </instruction>
-    
+    </instruction>   
     <instruction order="7" opcode="WRITE">
         <arg1 type="var">GF@var</arg1>
     </instruction>
