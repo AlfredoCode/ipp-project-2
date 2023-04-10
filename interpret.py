@@ -698,6 +698,12 @@ class InstructionParser:
                                     for lab in frame.labelList:
                                         if lab[0] == dst:
                                             self.pos = lab[1]  
+                            elif op == "JUMPIFNEQ":
+                                # print(dst, op1, op2)
+                                if not frame.jumpIf(dst, op1, op2, t1, t2, e):
+                                    for lab in frame.labelList:
+                                        if lab[0] == dst:
+                                            self.pos = lab[1]  
                 
                 if op == "STRLEN" and child.childNodes.length + 1 == 1: # empty string
                     frame.getLength(dst, "", e)
