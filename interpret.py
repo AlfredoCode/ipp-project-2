@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 import re
 from xml.dom.minidom import parse, parseString
 
@@ -161,6 +162,8 @@ class Frame:
         self.data = []
         self.insList = []
         self.labelList = []
+        self.inp = None
+        self.reader = 0
     def checkOperand(self, op, e):
         op_frame = self.getFrame(op)
         if op_frame is not None:
@@ -564,6 +567,40 @@ class Frame:
                 e.msg("\t"+str(var)+"\n")
         self.allLabels(e)
         self.allInstructions(e)
+    def readValue(self, dst, type, e):
+        tmp = "nil"
+        # print(dst, type)
+        if self.inp is None:
+            if type == "int":
+                try:
+                    tmp = str(int(input()))
+                except:
+                    tmp = "nil"
+            elif type == "string":
+                tmp = str(input())
+            elif type == "bool":
+                try:
+                    tmp = str(bool(input())).lower()
+                except:
+                    tmp = "nil"
+        else:
+            inp = str(self.inp).splitlines()
+            # print(inp)
+            if type == "int":
+                # print(inp[self.reader], self.reader)
+                try:
+                    tmp = str(int(inp[self.reader]))
+                except:
+                    tmp = "nil"
+            elif type == "string":
+                tmp = str(inp[self.reader])
+            elif type == "bool":
+                if str(inp[self.reader]).lower() == "true":
+                    tmp = "true"
+                else:
+                    tmp = "false"
+        self.reader += 1
+        self.updateValue(tmp, dst, e)
     def allLabels(self, e):
         e.msg(">>> Label List\n")   
         for var in self.labelList:
@@ -579,17 +616,17 @@ class Frame:
         self.TF = []
 
 class InstructionParser:
-    def __init__(self, element, pos):
+    def __init__(self, element, pos, inp):
         self.opcode = element.getAttribute('opcode')
         self.element = element
         self.pos = pos
+        self.inp = inp
     def getPos(self):
         return self.pos    
     def execute(self, e, frame):
         op = self.opcode
         children = [node for node in self.element.childNodes if node.nodeType == node.ELEMENT_NODE]
         sorted_children = sorted(children, key=lambda node: node.tagName)
-
         # print(op)
         # print(self.element.childNodes)
         arg_counter = 0 
@@ -655,13 +692,15 @@ class InstructionParser:
                             op1 = curr
                             t1 = child.getAttribute('type')
                             if op == "NOT":
-                                frame.evaluate(dst, op1, "", "NOT", e)  
+                                frame.evaluate(dst, op1, "", "NOT", t1, t2, e)  
                             elif op == "INT2CHAR":
                                 frame.convertInt(dst, op1, e)
                             elif op == "STRLEN":
                                 frame.getLength(dst, op1, e)
                             elif op == "TYPE":
                                 frame.getType(dst, op1, e)
+                            elif op == "READ":
+                                frame.readValue(dst, op1, e)
                             
                         else:   # TODO arithmetic - int & var only, logic - bool & var only
                             op2 = curr
@@ -741,16 +780,37 @@ class Prog:
 
     src = args.source
     inp = args.input
-    if src is None and inp is None:
-        e.msg("Argument --source nebo --input nebyl nalezen\n")
-        exit(e.SCRIPT_PARAM) 
-
-    # TODO src is empty or inp is empty
-    try:
-        DOM = parse(src)
-    except:
-        e.msg("Input document is not well-formated!\n")
-        exit(e.XML_FORMAT)
+    # print(src, inp)
+    if src is None:
+        if inp is None:
+            e.msg("Argument --source nebo --input nebyl nalezen\n")
+            exit(e.SCRIPT_PARAM) 
+        src = sys.stdin.read()
+        try:
+            DOM = parseString(src)
+        except:
+            e.msg("Input document is not well-formated!\n")
+            exit(e.XML_FORMAT)
+    else:
+        if not os.path.exists(src):
+            e.msg("File does not exist!\n")
+            exit(e.FILE_NOT_FOUND)
+        try:
+            DOM = parse(src)
+        except:
+            e.msg("Input document is not well-formated!\n")
+            exit(e.XML_FORMAT)
+    if inp is None:
+        inp = sys.stdin.read()
+    else:
+        try:
+            with open(inp, "r") as file:
+                inp = file.read()
+        except:
+            e.msg("File does not exist!\n")
+            exit(e.FILE_NOT_FOUND)    
+    frame.inp = inp
+    
     root = DOM.documentElement
 
     xl.processXML(root, e)
@@ -767,7 +827,7 @@ class Prog:
     while pos.pc <= len(xl.firstLevel):
         # print(pos.pc)
         tag = xl.firstLevel[pos.pc - 1]
-        ins = InstructionParser(tag, pos.pc) # New instance of instruction
+        ins = InstructionParser(tag, pos.pc, inp) # New instance of instruction
         frame.insList.insert(pos.pc, (tag, pos.pc))
         ins.execute(e, frame)
         pc = ins.getPos()
