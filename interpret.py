@@ -395,17 +395,19 @@ class Frame:
                 exit(e.FRAME_NOT_EXIST)
             self.findVar(var, self.TF, e)
             self.TF.append([var, None])
+    def labelExists(self, label, e):
+        for lab in self.labelList:
+            # print(lab[0], label)
+            if lab[0] == label:
+                e.msg("LABEL redefinition not allowed!\n")
+                exit(e.SEMANTIC)
     def appendLabel(self, label, e):
         if self.insList == []:
             pos = 0
         else:
             pos = self.insList[-1]
             pos = pos[1]
-        for lab in self.labelList:
-            # print(lab[0], label)
-            if lab[0] == label:
-                e.msg("LABEL redefinition not allowed!\n")
-                exit(e.SEMANTIC)
+        self.labelExists(label, e)
         self.labelList.append((label, pos))
         
     def getFrame(self, var):
@@ -630,7 +632,14 @@ class InstructionParser:
                             frame.existsVar(curr, e)
                         frame.printVar(curr, t1, "stderr", e)   
                     elif op == "LABEL":
-                            frame.appendLabel(curr, e)
+                        frame.appendLabel(curr, e)
+                    elif op == "JUMP":
+                        for ins in frame.insList:
+                            for lab in frame.labelList:
+                                if ins[1] > lab[1]:
+                                    self.element = ins[0]
+                                    self.opcode = ins[0].getAttribute('opcode')
+                                    self.execute(e, frame)
                     else:
                         if arg_counter == 1:
                             dst = curr
