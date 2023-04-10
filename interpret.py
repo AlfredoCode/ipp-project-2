@@ -324,7 +324,7 @@ class Frame:
                         break
 
                 tmp = var[:int(op1)] + op2[0] + var[int(op1)+1:]   
-                print(dst, op1, op2)
+                # print(dst, op1, op2)
         except:
             if mode == "IDIV":
                 e.msg("Zero division not allowed!\n")
@@ -401,12 +401,9 @@ class Frame:
             if lab[0] == label:
                 e.msg("LABEL redefinition not allowed!\n")
                 exit(e.SEMANTIC)
-    def appendLabel(self, label, e):
-        if self.insList == []:
-            pos = 0
-        else:
-            pos = self.insList[-1]
-            pos = pos[1]
+    def appendLabel(self, label, pos, e):
+        pos = pos
+
         self.labelExists(label, e)
         self.labelList.append((label, pos))
         
@@ -573,10 +570,12 @@ class Frame:
         self.TF = []
 
 class InstructionParser:
-    def __init__(self, element):
+    def __init__(self, element, pos):
         self.opcode = element.getAttribute('opcode')
         self.element = element
-        
+        self.pos = pos
+    def getPos(self):
+        return self.pos    
     def execute(self, e, frame):
         op = self.opcode
         children = [node for node in self.element.childNodes if node.nodeType == node.ELEMENT_NODE]
@@ -632,14 +631,13 @@ class InstructionParser:
                             frame.existsVar(curr, e)
                         frame.printVar(curr, t1, "stderr", e)   
                     elif op == "LABEL":
-                        frame.appendLabel(curr, e)
+                        # frame.appendLabel(curr, e)
+                        pass
                     elif op == "JUMP":
-                        for ins in frame.insList:
-                            for lab in frame.labelList:
-                                if ins[1] > lab[1]:
-                                    self.element = ins[0]
-                                    self.opcode = ins[0].getAttribute('opcode')
-                                    self.execute(e, frame)
+                        for lab in frame.labelList:
+                            if lab[0] == curr:
+                                self.pos = lab[1]
+                                    
                     else:
                         if arg_counter == 1:
                             dst = curr
@@ -698,7 +696,14 @@ class InstructionParser:
             frame.listAll(e)
             exit(0)
 
-
+class progCounter:
+    def __init__(self):
+        self.pc = 1
+    def inc(self, pc):
+        pc += 1
+        self.pc = pc
+        # print(self.pc)
+        return pc
 
 class Prog:
     # Argument parsing
@@ -727,12 +732,24 @@ class Prog:
     root = DOM.documentElement
 
     xl.processXML(root, e)
-    pos = 1
-    for tag in xl.firstLevel:
-        ins = InstructionParser(tag) # New instance of instruction
-        frame.insList.append((tag, pos))
+    pos = progCounter()
+    lab_cnt = 1
+    for child in xl.firstLevel:
+        # print(child.getAttribute('opcode'))
+        if child.nodeType == child.ELEMENT_NODE and child.getAttribute('opcode') == "LABEL":
+            for sub in child.childNodes:
+                if sub.nodeType == sub.ELEMENT_NODE:
+                    for ss in sub.childNodes:
+                        frame.appendLabel(ss.nodeValue, lab_cnt, e)
+        lab_cnt += 1
+    while pos.pc <= len(xl.firstLevel):
+        # print(pos.pc)
+        tag = xl.firstLevel[pos.pc - 1]
+        ins = InstructionParser(tag, pos.pc) # New instance of instruction
+        frame.insList.insert(pos.pc, (tag, pos.pc))
         ins.execute(e, frame)
-        pos += 1
+        pc = ins.getPos()
+        pos.inc(pc)
         # print(f"Order: {tag.getAttribute('order')} Instruction: {tag.getAttribute('opcode')}")
     # frame.listAll(e)
 if __name__ == '__main__':
