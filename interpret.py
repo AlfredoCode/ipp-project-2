@@ -173,10 +173,16 @@ class Frame:
         return op
 
     def evaluate(self, dst, op1, op2, mode, t1, t2, e):
-        frame = self.getFrame(dst)
-        self.existsFrame(frame, e)
+        p_mode = ""
+        if mode != "JUMPIF":
+            frame = self.getFrame(dst)
+            self.existsFrame(frame, e)
+        
         op1 = self.checkOperand(op1, e)
         op2 = self.checkOperand(op2, e)
+        if mode == "JUMPIF":
+            # print(op1 == op2)
+            return op1 == op2
         diff = False
         try:
             if mode == "SUB":
@@ -533,7 +539,10 @@ class Frame:
         else:
             type = "int"
         self.updateValue(str(type), dst, e)
-                    
+    def jumpIf(self, dst, op1, op2, t1, t2, e):
+        jump = self.evaluate(dst, op1, op2, "JUMPIF", t1, t2, e)
+        # print(jump)
+        return jump
     def listAll(self, e):   # Lists all variables in all available frames -- DEBUG INFO
         insCount = len(self.insList)
         e.msg(f">>> Number of used instructions: {insCount}\n")
@@ -637,6 +646,7 @@ class InstructionParser:
                         for lab in frame.labelList:
                             if lab[0] == curr:
                                 self.pos = lab[1]
+
                                     
                     else:
                         if arg_counter == 1:
@@ -682,6 +692,12 @@ class InstructionParser:
                                 frame.evaluate(dst, op1, op2, "GETCHAR", t1, t2, e)
                             elif op == "SETCHAR":
                                 frame.evaluate(dst, op1, op2, "SETCHAR", t1, t2, e)
+                            elif op == "JUMPIFEQ":
+                                # print(dst, op1, op2)
+                                if frame.jumpIf(dst, op1, op2, t1, t2, e):
+                                    for lab in frame.labelList:
+                                        if lab[0] == dst:
+                                            self.pos = lab[1]  
                 
                 if op == "STRLEN" and child.childNodes.length + 1 == 1: # empty string
                     frame.getLength(dst, "", e)
