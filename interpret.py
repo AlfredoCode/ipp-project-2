@@ -840,6 +840,13 @@ class InstructionParser:
         self.inp = inp
     def getPos(self):
         return self.pos    
+    def checkEscape(self, curr):
+        esc = re.findall("\\\\\d{3}", curr)
+        for seq in esc:
+            curr = curr.replace(seq, chr(int(seq.lstrip('\\'))))
+        return curr
+
+
     def execute(self, e, frame):
         op = self.opcode
         children = [node for node in self.element.childNodes if node.nodeType == node.ELEMENT_NODE]
@@ -855,6 +862,7 @@ class InstructionParser:
                 for sub_child in child.childNodes:
                     # print(child.tagName)
                     curr = sub_child.nodeValue.strip()
+                    curr = self.checkEscape(curr)
                     # print(curr)
                     arg_counter += 1
                     if op == "DEFVAR":
@@ -868,7 +876,7 @@ class InstructionParser:
                             frame.updateValue(curr, dst, e)   
                     elif op == "WRITE":
                         t1 = child.getAttribute('type')
-                        if child.getAttribute('type') == 'bool' or child.getAttribute('type') == 'nil':
+                        if child.getAttribute('type') == 'nil':
                             pass
                         elif child.getAttribute('type') == 'var':
                             frame.existsVar(curr, e)
@@ -877,7 +885,7 @@ class InstructionParser:
                                 print("",end="")
                             else:
                                 frame.printVar(curr, t1, "normal", e)
-                        elif child.getAttribute('type') == 'int' or child.getAttribute('type') == 'string':
+                        elif child.getAttribute('type') == 'int' or child.getAttribute('type') == 'string' or child.getAttribute('type') == 'bool':
                             print(curr, end="")
                         # elif child.getAttribute('type') == 'float':
                         #     print(float.hex(float.fromhex(curr)), end="")
@@ -925,6 +933,10 @@ class InstructionParser:
                         for lab in frame.labelList:
                             if lab[0] == curr:
                                 self.pos = lab[1]
+                    elif op == "CALL":
+                        pass
+                    elif op == "RETURN":
+                        pass
 
                                     
                     else:
