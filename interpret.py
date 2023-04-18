@@ -228,7 +228,9 @@ class Frame:
         dst_type = self.getOperand(dst, e)
         dst_type = dst_type[2]
         
+        
         diff = False
+        not_set = False
         try:
             if mode == "IDIV" or mode == "SUB" or mode == "ADD" or mode == "MUL":
                 if t1 == "int" and t2 == "int":
@@ -367,9 +369,12 @@ class Frame:
                 
 
             elif mode == "SETCHAR":
+                if dst_type is None:
+                    not_set = True
+                    exit(e.MISSING_VALUE)
+                
                 if t1 == "int" and t2 == "string" and dst_type == "string":
                     var = self.strip(dst)
-                    
                     for item in frame:
                         if item[0] == var:
                             var = item[1]
@@ -390,6 +395,9 @@ class Frame:
                 e.msg("Zero division not allowed!\n")
                 exit(e.RUNTIME_VALUE)
             elif mode == "STRI2INT" or mode == "GETCHAR" or mode == "SETCHAR":
+                    if not_set:
+                        e.msg("Uninitialized variable!\n")
+                        exit(e.MISSING_VALUE)
                     e.msg("Cannot convert the character into ordinary value or index out of bounds!\n")
                     exit(e.RUNTIME_STRING)
             
@@ -397,7 +405,10 @@ class Frame:
                 e.msg("One or more uninitialized variables!\n")
                 exit(e.MISSING_VALUE)
         # print(tmp, frame, dst)
-        tmp = str(tmp).lower()
+        if mode == "SETCHAR":
+            tmp = str(tmp)
+        else:
+            tmp = str(tmp).lower()
         self.updateValue(str(tmp), dst, type, e)
 
     def dataPush(self, data, dat_t, e):
@@ -432,6 +443,12 @@ class Frame:
     def updateValue(self, value, dst, data_t, e):
         frame = self.getFrame(dst)
         self.existsVar(dst, e)
+        value_type = self.getOperand(value, e)
+        if data_t == "var":
+            data_t = value_type[2]
+        if data_t is None:
+            e.msg("Uninitialized variable!\n")
+            exit(e.MISSING_VALUE)
         dst = self.strip(dst)
         valFrame = self.getFrame(value)
         pattern_TF = "TF@[^@]+"
@@ -572,21 +589,27 @@ class Frame:
                     break 
         else:
             sys.stderr.write(var)
-    def convertInt(self, dst, value, e):
+    def convertInt(self, dst, value, data_t, e):
         self.existsVar(dst, e)
         pattern_TF = "TF@[^@]+"
         pattern_LF = "LF@[^@]+"
+        
+        if data_t == "var":
+            data_t = self.getOperand(value, e)
+            data_t = data_t[2]
+        
+        if data_t is None:
+            e.msg("Uninitialized variable!\n")
+            exit(e.MISSING_VALUE)
         value = self.checkOperand(value, e)
         if re.match(pattern_LF, str(value)) or re.match(pattern_TF, str(value)):
             e.msg("Frame does not exist!\n")
             exit(e.FRAME_NOT_EXIST)
-        try:
-            tmp = int(value)
-        except:
+        if data_t != "int":
             e.msg("Wrong value to convert!\n")
             exit(e.OPERAND_TYPE)
         try:
-            tmp = chr(tmp)
+            tmp = chr(int(value))
         except:
             e.msg("Ordinary value does not exist!\n")
             exit(e.RUNTIME_STRING)
@@ -650,7 +673,7 @@ class Frame:
     def jumpIf(self, dst, op1, op2, t1, t2, e):
         self.findLabel(dst, e)
         jump = self.evaluate(dst, op1, op2, "JUMPIF", t1, t2, e)
-        # print(jump)
+        # print(jump, op1, op2)
         return jump
     def listAll(self, e):   # Lists all variables in all available frames -- DEBUG INFO
         insCount = len(self.insList)
@@ -767,7 +790,6 @@ class InstructionParser:
                     # print(child.tagName)
                     curr = sub_child.nodeValue.strip()
                     curr = self.checkEscape(curr)
-                    # print(curr)
                     arg_counter += 1
                     
                     if op == "DEFVAR":
@@ -861,7 +883,7 @@ class InstructionParser:
                             if op == "NOT":
                                 frame.evaluate(dst, op1, "", "NOT", t1, "", e)  
                             elif op == "INT2CHAR":
-                                frame.convertInt(dst, op1, e)
+                                frame.convertInt(dst, op1, t1, e)
                             elif op == "STRLEN":
                                 frame.getLength(dst, op1, t1, e)
                             elif op == "TYPE":
@@ -921,10 +943,49 @@ class InstructionParser:
                             frame.evaluate(dst, "", "", "CONCAT", "string", "string", e)
                     else:
                         if op2 == "":
-                            frame.evaluate(dst, op1, "", "CONCAT", t1, "string", e)   
+                            frame.evaluate(dst, op1, "", "CONCAT", t1, "string", e)  
+                elif op == "SETCHAR" and child.childNodes.length + 1 == 1: # empty string
+                    e.msg("Empty character, cannot set!\n")
+                    exit(e.RUNTIME_STRING)
+        if op == "JUMPIFEQ":
+            if op1 == "":
+                if op2 != "":
+                    if frame.jumpIf(dst, "", op2, "string", t2, e):
+                        for lab in frame.labelList:
+                            if lab[0] == dst:
+                                self.pos = lab[1] 
+                else:
+                    if frame.jumpIf(dst, "", "", "string", "string", e):
+                        for lab in frame.labelList:
+                            if lab[0] == dst:
+                                self.pos = lab[1] 
+            else:
+                if op2 == "":  
+                    if frame.jumpIf(dst, op1, "", t1, "string", e):
+                        for lab in frame.labelList:
+                            if lab[0] == dst:
+                                self.pos = lab[1]
+        elif op == "JUMPIFNEQ":
+            if op1 == "":
+                if op2 != "":
+                    if not frame.jumpIf(dst, "", op2, "string", t2, e):
+                        for lab in frame.labelList:
+                            if lab[0] == dst:
+                                self.pos = lab[1] 
+                else:
+                    if not frame.jumpIf(dst, "", "", "string", "string", e):
+                        for lab in frame.labelList:
+                            if lab[0] == dst:
+                                self.pos = lab[1] 
+            else:
+                if op2 == "":  
+                    if not frame.jumpIf(dst, op1, "", t1, "string", e):
+                        for lab in frame.labelList:
+                            if lab[0] == dst:
+                                self.pos = lab[1]
                 
                 
-        if op == "CREATEFRAME": 
+        elif op == "CREATEFRAME": 
             frame.createFrame(e)
         elif op == "PUSHFRAME":
             frame.pushFrame(e)
