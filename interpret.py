@@ -176,6 +176,20 @@ class Frame:
                     op = item[1]
 
         return op
+    
+    def getOperand(self, op, e):
+        op_frame = self.getFrame(op)
+        if op_frame is not None:
+            self.existsFrame(op_frame, e)
+            self.existsVar(op, e)
+            op = self.strip(op) 
+            for item in op_frame:
+                # print(frame, var, item[0])
+                if item[0] == op:
+                    op = item[1]
+                    return item
+
+        return op
 
     def evaluate(self, dst, op1, op2, mode, t1, t2, e):
 
@@ -184,7 +198,17 @@ class Frame:
             self.existsFrame(frame, e)
         pattern_TF = "TF@[^@]+"
         pattern_LF = "LF@[^@]+"
+        # print(t1, t2, op1, op2)
+        if t1 == "var":
+            t1 = self.getOperand(op1, e)
+            t1 = t1[2]
+        if t2 == "var":
+            t2 = self.getOperand(op2, e)
+            t2 = t2[2]
+
+        # print(t1, t2)
         op1 = self.checkOperand(op1, e)
+        type = ""
         if mode == "WRITE":
             if op1 == "nil" and (t1 == "var" or t1 == "nil"):
                 return True
@@ -199,7 +223,8 @@ class Frame:
         #     if t1 == t2 and t1 != "var":
         #         return op1 == op2
         #     if t1 == "var":
-
+        
+        
         diff = False
         try:
             if mode == "IDIV" or mode == "SUB" or mode == "ADD" or mode == "MUL":
@@ -213,16 +238,7 @@ class Frame:
                     elif mode == "MUL":
                         tmp = int(op1) * int(op2)
                     tmp = int(tmp)
-                elif t1 == "var" or t2 == "var":
-                    if op1 == "false" or op1 == "true" or op1 == "nil" or op2 == "false" or op2 == "true" or op2 == "nil":
-                        diff = True
-                        exit(e.OPERAND_TYPE)  
-                    if op1.isdigit() and op2.isdigit():
-                        tmp = int(op1) / int(op2)
-                        tmp = int(tmp)
-                    else:
-                        diff = True
-                        exit(e.OPERAND_TYPE)   
+                    type = "int"
                 else:
                     diff = True
                     exit(e.OPERAND_TYPE)  
@@ -231,36 +247,38 @@ class Frame:
                 # print(bool(op1), bool(op2))
                 op1 = str(op1).lower()
                 op2 = str(op2).lower()
-                if op1 != "false" and op1 != "true" or op2 != "false" and op2 != "true"  :
+                if t1 != t2:
                     diff = True
                     exit(e.OPERAND_TYPE)
                 if op1 == op2 and op1 == "true":
                     tmp = "true"
                 else:
                     tmp = "false"
+                type = "bool"
             elif mode == "OR":
                 op1 = str(op1).lower()
                 op2 = str(op2).lower()
-                if t1 == "bool" and t2 == "bool" or t1 == "var" or t2 == "var":
+                if t1 == "bool" and t2 == "bool":
                     if (op1 != op2 or (op1 == op2 and op1 == "true")):
                         tmp = "true"
                     else:
                         tmp = "false"
+                    type = "bool"
                 else:
                     diff = True
                     exit(e.OPERAND_TYPE)
                 # print(">>>",op1, op2, tmp,"<<<<")
             elif mode == "NOT":
-                if t1 == "bool" or t1 == "var":
+                if t1 == "bool":
                     if op1 == "false":
                         tmp = "true"
                     else:
                         tmp = "false"
+                    type = "bool"
                 else:
                     diff = True
                     exit(e.OPERAND_TYPE)
             elif mode == "LT" or mode == "GT" or mode == "EQ" or mode == "CONCAT" or mode == "JUMPIF":
-                
                 if t1 == "nil" or t2 == "nil":
                     # print(op1, op2, t1, t2)
                     if mode == "EQ":
@@ -270,6 +288,7 @@ class Frame:
                     else:
                         diff = True
                         exit(e.OPERAND_TYPE)
+                    type = "bool"
                 elif t1 == "int" and t2 == "int":
                     if mode == "LT":
                         tmp = int(op1) < int(op2)
@@ -278,10 +297,11 @@ class Frame:
                     elif mode == "EQ":
                         tmp = int(op1) == int(op2) 
                     elif mode == "JUMPIF":
-                        return op1 == op2
+                        return int(op1) == int(op2)
                     else:
                         diff = True
                         exit(e.OPERAND_TYPE)
+                    type = "bool"
                 elif t1 == "bool" and t2 == "bool":
                     if mode == "LT":
                         tmp = op1 < op2
@@ -294,195 +314,45 @@ class Frame:
                     else:
                         diff = True
                         exit(e.OPERAND_TYPE)
+                    type = "bool"
 
                 elif t1 == "string" and t2 == "string": # string & string only
                     if mode == "LT":
                         tmp = op1 < op2
                     elif mode == "GT":
                         tmp = op1 > op2 
-                    elif mode == "CONCAT":
-                        tmp = op1 + op2 # concatenated string    
                     elif mode == "EQ":
                         tmp = op1 == op2
                     elif mode == "JUMPIF":
                         return op1 == op2
+                    
+                    
                     else:
-                        diff = True
-                        exit(e.OPERAND_TYPE)
-                elif t1 != t2 and (t1 != "var" or t2 != "var" or t1 != "nil" or t2 != "nil"):
+                        if mode == "CONCAT":
+                            tmp = op1 + op2 # concatenated string 
+                            type = "string"
+                        else:
+                            diff = True
+                            exit(e.OPERAND_TYPE)
+                    if mode != "CONCAT":
+                        type = "bool"
+                elif t1 != t2:
                     diff = True
                     exit(e.OPERAND_TYPE)
 
 
-                elif t1 == "var":
-                    if t2 == "int":
-                        if op1 != "nil":
-                            if not op1.isdigit():
-                                e.msg("Expected int and int logic operation!\n")
-                                diff = True
-                                exit(e.OPERAND_TYPE)
-                            if mode == "LT":
-                                tmp = int(op1) < int(op2)
-                            elif mode == "GT":
-                                tmp = int(op1) > int(op2) 
-                            elif mode == "EQ":
-                                tmp = int(op1) == int(op2)
-                            elif mode == "JUMPIF":
-                                return op1 == op2
-                        else:
-                            tmp = op1 == op2
-                    elif t2 == "bool":
-                        if op1 != "nil":
-                            if not (op1 == "false" or op1 == "true"):
-                                e.msg("Expected bool and bool logic operation!\n")
-                                exit(e.OPERAND_TYPE)
-                            if mode == "LT":
-                                tmp = op1 < op2
-                            elif mode == "GT":
-                                tmp = op1 > op2
-                            elif mode == "EQ":
-                                tmp = op1 == op2
-                            elif mode == "JUMPIF":
-                                return op1 == op2
-                        else:
-                            tmp = op1 == op2
-                    elif t2 == "string":
-                        if op1 != "nil":
-                            if mode == "LT":
-                                tmp = op1 < op2
-                            elif mode == "GT":
-                                tmp = op1 > op2
-                            elif mode == "EQ":
-                                tmp = op1 == op2
-                            elif mode == "CONCAT":
-                                tmp = op1 + op2 # concatenated string
-                            elif mode == "JUMPIF":
-                                return op1 == op2
-                        else:
-                            tmp = op1 == op2
-                    elif t2 == "var":
-                        if op1.isdigit() and op2.isdigit():
-                            if mode == "LT":
-                                tmp = int(op1) < int(op2)
-                            elif mode == "GT":
-                                tmp = int(op1) > int(op2) 
-                            elif mode == "EQ":
-                                tmp = int(op1) == int(op2)
-                            elif mode == "JUMPIF":
-                                return op1 == op2
-                        elif (op1 == "true" or op1 == "false") and (op2 == "true" or op2 == "false"):
-                            if mode == "LT":
-                                tmp = op1 < op2
-                            elif mode == "GT":
-                                tmp = op1 > op2
-                            elif mode == "EQ":
-                                tmp = op1 == op2
-                            elif mode == "JUMPIF":
-                                return op1 == op2
-                            else:
-                                diff = True # PROBLEM, what if string and string occurs
-                                exit(e.OPERAND_TYPE)
-                        elif op1 == "nil" or op2 == "nil":
-                            tmp = op1 == op2
-                        else:
-                            if mode == "LT":
-                                tmp = op1 < op2
-                            elif mode == "GT":
-                                tmp = op1 > op2
-                            elif mode == "EQ":
-                                tmp = op1 == op2
-                            elif mode == "JUMPIF":
-                                return op1 == op2
-                            
-                        
-
-                elif t2 == "var":
-                    if t1 == "int":
-                        if op2 != "nil":
-                            if not op2.isdigit():
-                                e.msg("Expected int and int logic operation!\n")
-                                exit(e.OPERAND_TYPE)
-                            if mode == "LT":
-                                tmp = int(op1) < int(op2)
-                            elif mode == "GT":
-                                tmp = int(op1) > int(op2)   
-                            elif mode == "EQ":
-                                tmp = int(op1) == int(op2)
-                            elif mode == "JUMPIF":
-                                return op1 == op2
-                        else:
-                            tmp = op1 == op2
-                    elif t1 == "bool":
-                        if op2 != "nil":
-                            if not (op2 == "false" or op2 == "true"):
-                                e.msg("Expected bool and bool logic operation!\n")
-                                exit(e.OPERAND_TYPE)
-                            if mode == "LT":
-                                tmp = op1 < op2
-                            elif mode == "GT":
-                                tmp = op1 > op2
-                            elif mode == "EQ":
-                                tmp = op1 == op2
-                            elif mode == "JUMPIF":
-                                return op1 == op2
-                        else:
-                            tmp = op1 == op2
-                    elif t1 == "string":
-                        if op2 != "nil":
-                            if mode == "LT":
-                                tmp = op1 < op2
-                            elif mode == "GT":
-                                tmp = op1 > op2
-                            elif mode == "EQ":
-                                tmp = op1 == op2
-                            elif mode == "JUMPIF":
-                                return op1 == op2
-                            elif mode == "CONCAT":
-                                tmp = op1 + op2 # concatenated string
-                        else:
-                            tmp = op1 == op2
-                    
-                    
+                   
             elif mode == "STRI2INT":
+                if t1 != "string" or t2 != "int":
+                    diff = True;
+                    exit(e.OPERAND_TYPE)
                 wanted = op1[int(op2)]
                 tmp = ord(wanted)
+                type = "int"
             elif mode == "GETCHAR":
                 if t1 == "string" and t2 == "int":
                     tmp = op1[int(op2)]
-                elif t1 == "var":
-                    if not (op1.isdigit() or op1 == "true" or op1 == "false" or op1 == "nil"):
-                        if t2 == "int":
-                            tmp = op1[int(op2)]
-                        elif t2 == "var":
-                            if op2.isdigit():  
-                                tmp = op1[int(op2)]
-                            else:
-                                diff = True
-                                exit(e.OPERAND_TYPE)    
-                        else:
-                            diff = True
-                            exit(e.OPERAND_TYPE)  
-                           
-                    else:
-                        diff = True
-                        exit(e.OPERAND_TYPE)
-                elif t2 == "var":
-                    if not (op2.isdigit() or op2 == "true" or op2 == "false" or op2 == "nil"):
-                        if t1 == "int":
-                            tmp = op1[int(op2)]
-                        elif t1 == "var":
-                            if op2.isdigit():  
-                                tmp = op1[int(op2)]
-                            else:
-                                diff = True
-                                exit(e.OPERAND_TYPE)    
-                        else:
-                            diff = True
-                            exit(e.OPERAND_TYPE)  
-                           
-                    else:
-                        diff = True
-                        exit(e.OPERAND_TYPE)
+                    type = "string"
                 else:
                     diff = True
                     exit(e.OPERAND_TYPE)
@@ -494,7 +364,7 @@ class Frame:
                     if item[0] == var:
                         var = item[1]
                         break
-
+                type = "string"
                 tmp = var[:int(op1)] + op2[0] + var[int(op1)+1:]   
                 # print(dst, op1, op2)
         except:
@@ -513,12 +383,12 @@ class Frame:
                 exit(e.MISSING_VALUE)
         # print(tmp, frame, dst)
         tmp = str(tmp).lower()
-        self.updateValue(str(tmp), dst, e)
+        self.updateValue(str(tmp), dst, type, e)
 
-    def dataPush(self, data, e):
+    def dataPush(self, data, dat_t, e):
         frame = self.getFrame(data)
         if frame is None:
-            self.data.append(data)
+            self.data.append([data, dat_t])
         else:
             self.existsVar(data, e)
             data = self.strip(data)
@@ -536,9 +406,9 @@ class Frame:
         except:
             e.msg("Cannot pop value, stack is empty!\n")
             exit(e.MISSING_VALUE)
-        self.updateValue(popped, data, e)
+        self.updateValue(popped[0], data, popped[1], e)
 
-    def updateValue(self, value, dst, e):
+    def updateValue(self, value, dst, data_t, e):
         frame = self.getFrame(dst)
         self.existsVar(dst, e)
         dst = self.strip(dst)
@@ -552,28 +422,30 @@ class Frame:
             exit(e.FRAME_NOT_EXIST)
         for item in frame:
             if item[0] == dst:
-                item[1] = value  
+                item[1] = value 
+                item[2] = data_t;
                 break
 
-    def appendVar(self, var, e):
+    def appendVar(self, var, data_t, e):
         type = self.getFrame(var)
         var = self.strip(var)
+        
 
         if type is self.GF:
             self.findVar(var, self.GF, e)
-            self.GF.append([var, None])
+            self.GF.append([var, None, data_t])
         elif type is self.LF:
             if self.LF is None:
                 e.msg("LF does not exist!\n")
                 exit(e.FRAME_NOT_EXIST)
             self.findVar(var, self.LF, e)
-            self.LF.append([var, None])
+            self.LF.append([var, None, data_t])
         elif type is self.TF:
             if self.TF is None:
                 e.msg("TF does not exist!\n")
                 exit(e.FRAME_NOT_EXIST)
             self.findVar(var, self.TF, e)
-            self.TF.append([var, None])
+            self.TF.append([var, None, data_t])
     def labelExists(self, label, e):
         for lab in self.labelList:
             # print(lab[0], label)
@@ -631,7 +503,7 @@ class Frame:
             # print(frame, var, item[0])
             if item[0] == var:
                 found = True
-                break
+                return item
         if not found:
             e.msg("Using undefined variable, probably missing DEFVAR\n")
             exit(e.UNDEF_VAR)
@@ -702,12 +574,16 @@ class Frame:
         except:
             e.msg("Ordinary value does not exist!\n")
             exit(e.RUNTIME_STRING)
-        self.updateValue(tmp, dst, e)
-    def getLength(self, dst, op1, e):
+        self.updateValue(tmp, dst, "string", e)
+    def getLength(self, dst, op1, data_type, e):
         self.existsVar(dst, e)
         pattern_TF = "TF@[^@]+"
         pattern_LF = "LF@[^@]+"
         op1 = self.checkOperand(op1, e)
+        if data_type != "string":
+            e.msg("Invalid operand type!\n");
+            exit(e.OPERAND_TYPE)
+        
         if re.match(pattern_LF, str(op1)) or re.match(pattern_TF, str(op1)):
             e.msg("Frame does not exist!\n")
             exit(e.FRAME_NOT_EXIST)
@@ -716,15 +592,18 @@ class Frame:
                 tmp = 0
             else:    
                 tmp = len(op1)
+            data_type = "int"
         except:
             e.msg("Something wrong happened when executing STRLEN!\n")
             exit(e.RUNTIME_STRING)
-        self.updateValue(str(tmp), dst, e)
-    def getType(self, dst, op1, e):
+        self.updateValue(str(tmp), dst, data_type, e)
+    def getType(self, dst, op1, type, e):
         frame = self.getFrame(op1)
-        type = ""
         pattern_TF = "TF@[^@]+"
         pattern_LF = "LF@[^@]+"
+        if type == "var":
+            type = self.getOperand(op1, e)
+            type = type[2]
         op1 = self.checkOperand(op1, e)
         if re.match(pattern_LF, str(op1)) or re.match(pattern_TF, str(op1)):
             e.msg("Frame does not exist!\n")
@@ -740,18 +619,7 @@ class Frame:
         if op1 is None:
             type = ""
         
-        try:
-            op1 = int(op1)
-            type = "int"
-        except:
-            if op1 == "true" or op1 == "false":
-                type = "bool"
-            elif op1 == "nil":
-                type = "nil(type_type)"
-            else:
-                type = "string"
-            
-        self.updateValue(str(type), dst, e)
+        self.updateValue(str(type), dst, "string", e)
     def jumpIf(self, dst, op1, op2, t1, t2, e):
         self.findLabel(dst, e)
         jump = self.evaluate(dst, op1, op2, "JUMPIF", t1, t2, e)
@@ -801,23 +669,29 @@ class Frame:
                 # print(inp[self.reader], self.reader)
                 try:
                     tmp = str(int(inp[self.reader]))
+                    type = "int"
                 except:
                     tmp = "nil"
+                    type = "nil"
             elif type == "string":
                 try:
                     tmp = str(inp[self.reader])
+                    type = "string"
                 except: 
                     tmp = "nil"
+                    type = "nil"
             elif type == "bool":
                 try:
                     if str(inp[self.reader]).lower() == "true":
                         tmp = "true"
                     else:
                         tmp = "false"
+                    type = "bool"
                 except:
                     tmp = "nil"
+                    type = "nil"
         self.reader += 1
-        self.updateValue(tmp, dst, e)
+        self.updateValue(tmp, dst, type, e)
     def allLabels(self, e):
         e.msg(">>> Label List\n")   
         for var in self.labelList:
@@ -866,14 +740,17 @@ class InstructionParser:
                     # print(curr)
                     arg_counter += 1
                     if op == "DEFVAR":
-                        frame.appendVar(curr, e)
+                        
+                        frame.appendVar(curr, None, e)
                     elif op == "MOVE":
+                        
                         if arg_counter == 1:
                             # print(arg_counter)
                             dst = curr
                             frame.existsVar(dst, e)
                         else:
-                            frame.updateValue(curr, dst, e)   
+                            t1 = child.getAttribute('type')
+                            frame.updateValue(curr, dst, t1, e)   
                     elif op == "WRITE":
                         t1 = child.getAttribute('type')
                         if child.getAttribute('type') == 'nil':
@@ -918,7 +795,7 @@ class InstructionParser:
                             e.msg("Invalid exit code!\n")
                             exit(e.OPERAND_TYPE)
                     elif op == "PUSHS":
-                        frame.dataPush(curr, e)
+                        frame.dataPush(curr, child.getAttribute('type'), e)
                     elif op == "POPS":
                         frame.dataPop(curr, e)
                     elif op == "DPRINT":
@@ -950,9 +827,10 @@ class InstructionParser:
                             elif op == "INT2CHAR":
                                 frame.convertInt(dst, op1, e)
                             elif op == "STRLEN":
-                                frame.getLength(dst, op1, e)
+                                
+                                frame.getLength(dst, op1, t1, e)
                             elif op == "TYPE":
-                                frame.getType(dst, op1, e)
+                                frame.getType(dst, op1, t1, e)
                             elif op == "READ":
                                 frame.readValue(dst, op1, e)
                             
@@ -999,7 +877,7 @@ class InstructionParser:
                                             self.pos = lab[1]  
                 
                 if op == "STRLEN" and child.childNodes.length + 1 == 1: # empty string
-                    frame.getLength(dst, "", e)
+                    frame.getLength(dst, "", "string", e)
 
         if op == "CREATEFRAME": 
             frame.createFrame(e)
