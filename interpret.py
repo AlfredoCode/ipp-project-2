@@ -103,15 +103,10 @@ class ParseXML:
                     e.msg("Invalid opcode!\n")
                     exit(e.XML_STRUCTURE)
                 for sub in sorted_children:
-                    # print(child.getAttribute('opcode'))
-                    # print(self.count)
-            
-                        
                     if sub.nodeType == sub.ELEMENT_NODE:
                         self.count += 1
                         arg_pattern = "arg["+str(self.count)+"]"
                         if sub.tagName not in new:
-                            # print(sub.tagName)
                             if re.match(arg_pattern, sub.tagName):
                                 new.append(sub.tagName)
                             else:
@@ -132,7 +127,6 @@ class ParseXML:
         prev_order = None
         for tag in self.firstLevel:
             curr_order = tag.getAttribute('order')
-            # print(curr_order)
             try:    # Check if order is numeric or not
                 curr_order = int(curr_order)
             except:
@@ -172,7 +166,6 @@ class Frame:
             self.existsVar(op, e)
             op = self.strip(op) 
             for item in op_frame:
-                # print(frame, var, item[0])
                 if item[0] == op:
                     op = item[1]
 
@@ -185,7 +178,6 @@ class Frame:
             self.existsVar(op, e)
             op = self.strip(op) 
             for item in op_frame:
-                # print(frame, var, item[0])
                 if item[0] == op:
                     op = item[1]
                     return item
@@ -200,7 +192,6 @@ class Frame:
         pattern_LF = "LF@[^@]+"
         
 
-        # print(t1, t2, op1, op2)
         if t1 == "var":
             t1 = self.getOperand(op1, e)
             t1 = t1[2]
@@ -212,7 +203,6 @@ class Frame:
             e.msg("Missing value in variable\n")
             exit(e.MISSING_VALUE)
 
-        # print(t1, t2)
         op1 = self.checkOperand(op1, e)
         type = ""
         if mode == "WRITE":
@@ -249,7 +239,6 @@ class Frame:
                     exit(e.OPERAND_TYPE)  
 
             elif mode == "AND":
-                # print(bool(op1), bool(op2))
                 op1 = str(op1).lower()
                 op2 = str(op2).lower()
                 if t1 != t2:
@@ -272,7 +261,6 @@ class Frame:
                 else:
                     diff = True
                     exit(e.OPERAND_TYPE)
-                # print(">>>",op1, op2, tmp,"<<<<")
             elif mode == "NOT":
                 if t1 == "bool":
                     if op1 == "false":
@@ -285,7 +273,6 @@ class Frame:
                     exit(e.OPERAND_TYPE)
             elif mode == "LT" or mode == "GT" or mode == "EQ" or mode == "CONCAT" or mode == "JUMPIF":
                 if t1 == "nil" or t2 == "nil":
-                    # print(op1, op2, t1, t2)
                     if mode == "EQ":
                         tmp = op1 == op2
                     elif mode == "JUMPIF":
@@ -386,7 +373,6 @@ class Frame:
                 else:
                     diff = True
                     exit(e.OPERAND_TYPE)
-                # print(dst, op1, op2)
         except:
             if diff == True:
                 e.msg("Cannot perform operations with different types or types other than string!\n")
@@ -404,7 +390,6 @@ class Frame:
             else:
                 e.msg("One or more uninitialized variables!\n")
                 exit(e.MISSING_VALUE)
-        # print(tmp, frame, dst)
         if mode == "SETCHAR":
             tmp = str(tmp)
         else:
@@ -428,7 +413,6 @@ class Frame:
                 if item[0] == data:
                     self.data.append([item[1], item[2]])
 
-        # print(self.data)
     def dataPop(self, data, e):
         frame = self.getFrame(data)
         self.existsFrame(frame, e)
@@ -486,13 +470,11 @@ class Frame:
             self.TF.append([var, None, data_t])
     def labelExists(self, label, e):
         for lab in self.labelList:
-            # print(lab[0], label)
             if lab[0] == label:
                 e.msg("LABEL redefinition not allowed!\n")
                 exit(e.SEMANTIC)
     def findLabel(self, label, e):
         for lab in self.labelList:
-            # print(lab[0], label)
             if lab[0] == label:
                 return True
         e.msg("Label does not exist!\n")
@@ -532,12 +514,10 @@ class Frame:
             exit(e.FRAME_NOT_EXIST)
     def existsVar(self, var, e):
         frame = self.getFrame(var)
-        # print(frame, var)
         self.existsFrame(frame, e)
         var = self.strip(var)
         found = False
         for item in frame:
-            # print(frame, var, item[0])
             if item[0] == var:
                 found = True
                 return item
@@ -546,7 +526,6 @@ class Frame:
             exit(e.UNDEF_VAR)
         
     def pushFrame(self, e):
-        # print(self.frameStack)
         if self.TF is None:
             e.msg("TF cannot be pushed since it does not exist.\n")
             exit(e.FRAME_NOT_EXIST)
@@ -560,9 +539,7 @@ class Frame:
             e.msg("No LF to pop available!\n")
             exit(e.FRAME_NOT_EXIST)
         self.TF = self.frameStack.pop()
-        # self.LF = self.frameStack.pop()
         self.frameStack.append(self.LF)
-        # print(self.LF, self.TF)
 
     def findVar(self, var, frame, e):
         for child in frame:
@@ -572,11 +549,9 @@ class Frame:
     def printVar(self, var, t1, mode, e):   # Existence of variable needs to be checked before calling the method
         if t1 == "var":
             frame = self.getFrame(var)
-            # print(frame, var)
             self.existsFrame(frame, e)
             var = self.strip(var) 
             for item in frame:
-                # print(frame, var, item[0])
                 if item[0] == var:
                     if mode == "normal":
                         if item[1] is None:
@@ -663,7 +638,6 @@ class Frame:
             self.existsFrame(frame, e)
             op1 = self.strip(op1) 
             for item in frame:
-                # print(frame, var, item[0])
                 if item[0] == op1:
                     op1 = item[1]
                     break
@@ -673,7 +647,6 @@ class Frame:
     def jumpIf(self, dst, op1, op2, t1, t2, e):
         self.findLabel(dst, e)
         jump = self.evaluate(dst, op1, op2, "JUMPIF", t1, t2, e)
-        # print(jump, op1, op2)
         return jump
     def listAll(self, e):   # Lists all variables in all available frames -- DEBUG INFO
         insCount = len(self.insList)
@@ -698,7 +671,6 @@ class Frame:
         self.allInstructions(e)
     def readValue(self, dst, type, e):
         tmp = "nil"
-        # print(dst, type)
         if self.inp is None:
             if type == "int":
                 try:
@@ -714,9 +686,7 @@ class Frame:
                     tmp = "nil"
         else:
             inp = str(self.inp).splitlines()
-            # print(inp)
             if type == "int":
-                # print(inp[self.reader], self.reader)
                 try:
                     tmp = str(int(inp[self.reader]))
                     type = "int"
@@ -776,18 +746,13 @@ class InstructionParser:
         op = self.opcode
         children = [node for node in self.element.childNodes if node.nodeType == node.ELEMENT_NODE]
         sorted_children = sorted(children, key=lambda node: node.tagName)
-        # print(op)
-        # print(self.element.childNodes)
         arg_counter = 0 
         dst = ""
         op1 = ""
         op2 = ""
-        # print(op)
         for child in sorted_children:
             if child.nodeType == child.ELEMENT_NODE:
-                # print(child.tagName)
                 for sub_child in child.childNodes:
-                    # print(child.tagName)
                     curr = sub_child.nodeValue.strip()
                     curr = self.checkEscape(curr)
                     arg_counter += 1
@@ -798,7 +763,6 @@ class InstructionParser:
                     elif op == "MOVE":
                         
                         if arg_counter == 1:
-                            # print(arg_counter)
                             dst = curr
                             frame.existsVar(dst, e)
                         else:
@@ -817,11 +781,8 @@ class InstructionParser:
                                 frame.printVar(curr, t1, "normal", e)
                         elif child.getAttribute('type') == 'int' or child.getAttribute('type') == 'string' or child.getAttribute('type') == 'bool':
                             print(curr, end="")
-                        # elif child.getAttribute('type') == 'float':
-                        #     print(float.hex(float.fromhex(curr)), end="")
                     
                     elif op == "EXIT":
-                        # print(curr)
                         if child.getAttribute('type') == 'int':
                             if int(curr) >= 0 and int(curr) <= 49:
                                 exit(int(curr))  
@@ -833,7 +794,6 @@ class InstructionParser:
                             frame.existsFrame(op_frame, e)
                             frame.existsVar(curr, e)
                             curr = frame.getOperand(curr, e)
-                            # print(curr)
                             if curr[2] is None:
                                 e.msg("Invalid exit code!\n")
                                 exit(e.MISSING_VALUE)
@@ -921,13 +881,11 @@ class InstructionParser:
                             elif op == "SETCHAR":
                                 frame.evaluate(dst, op1, op2, "SETCHAR", t1, t2, e)
                             elif op == "JUMPIFEQ":
-                                # print(dst, op1, op2)
                                 if frame.jumpIf(dst, op1, op2, t1, t2, e):
                                     for lab in frame.labelList:
                                         if lab[0] == dst:
                                             self.pos = lab[1]  
                             elif op == "JUMPIFNEQ":
-                                # print(dst, op1, op2)
                                 if not frame.jumpIf(dst, op1, op2, t1, t2, e):
                                     for lab in frame.labelList:
                                         if lab[0] == dst:
@@ -1023,7 +981,6 @@ class Prog:
 
     src = args.source
     inp = args.input
-    # print(src, inp)
     if src is None:
         if inp is None:
             e.msg("Argument --source nebo --input nebyl nalezen\n")
@@ -1060,7 +1017,6 @@ class Prog:
     pos = progCounter()
     lab_cnt = 1
     for child in xl.firstLevel:
-        # print(child.getAttribute('opcode'))
         if child.nodeType == child.ELEMENT_NODE and child.getAttribute('opcode') == "LABEL":
             for sub in child.childNodes:
                 if sub.nodeType == sub.ELEMENT_NODE:
@@ -1068,14 +1024,12 @@ class Prog:
                         frame.appendLabel(ss.nodeValue, lab_cnt, e)
         lab_cnt += 1
     while pos.pc <= len(xl.firstLevel):
-        # print(pos.pc)
         tag = xl.firstLevel[pos.pc - 1]
         ins = InstructionParser(tag, pos.pc, inp) # New instance of instruction
         frame.insList.insert(pos.pc, (tag, pos.pc))
         ins.execute(e, frame)
         pc = ins.getPos()
         pos.inc(pc)
-        # print(f"Order: {tag.getAttribute('order')} Instruction: {tag.getAttribute('opcode')}")
-    # frame.listAll(e)
+       
 if __name__ == '__main__':
     Prog()
