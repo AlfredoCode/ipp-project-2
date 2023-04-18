@@ -164,6 +164,7 @@ class Frame:
         self.labelList = []
         self.inp = None
         self.reader = 0
+        self.returnStack = []
     def checkOperand(self, op, e):
         op_frame = self.getFrame(op)
         if op_frame is not None:
@@ -192,19 +193,24 @@ class Frame:
         return op
 
     def evaluate(self, dst, op1, op2, mode, t1, t2, e):
-
         if mode != "JUMPIF" and mode != "WRITE":
             frame = self.getFrame(dst)
             self.existsFrame(frame, e)
         pattern_TF = "TF@[^@]+"
         pattern_LF = "LF@[^@]+"
+        
+
         # print(t1, t2, op1, op2)
         if t1 == "var":
             t1 = self.getOperand(op1, e)
             t1 = t1[2]
+            
         if t2 == "var":
             t2 = self.getOperand(op2, e)
             t2 = t2[2]
+        if t1 is None or t2 is None:
+            e.msg("Missing value in variable\n")
+            exit(e.MISSING_VALUE)
 
         # print(t1, t2)
         op1 = self.checkOperand(op1, e)
@@ -218,12 +224,9 @@ class Frame:
         if re.match(pattern_LF, str(op1)) or re.match(pattern_TF, str(op1)) or re.match(pattern_LF, str(op2)) or re.match(pattern_TF, str(op2)):
             e.msg("Frame does not exist!\n")
             exit(e.FRAME_NOT_EXIST)
-        # if mode == "JUMPIF":
-        #     # print(op1 == op2)
-        #     if t1 == t2 and t1 != "var":
-        #         return op1 == op2
-        #     if t1 == "var":
-        
+
+        dst_type = self.getOperand(dst, e)
+        dst_type = dst_type[2]
         
         diff = False
         try:
@@ -346,11 +349,16 @@ class Frame:
                 if t1 != "string" or t2 != "int":
                     diff = True;
                     exit(e.OPERAND_TYPE)
+
+                if int(op2) < 0:
+                    exit(e.SEMANTIC)
                 wanted = op1[int(op2)]
                 tmp = ord(wanted)
                 type = "int"
             elif mode == "GETCHAR":
                 if t1 == "string" and t2 == "int":
+                    if int(op2) < 0 or int(op2) >= len(op1):
+                        exit(e.SEMANTIC)
                     tmp = op1[int(op2)]
                     type = "string"
                 else:
@@ -359,13 +367,20 @@ class Frame:
                 
 
             elif mode == "SETCHAR":
-                var = self.strip(dst)
-                for item in frame:
-                    if item[0] == var:
-                        var = item[1]
-                        break
-                type = "string"
-                tmp = var[:int(op1)] + op2[0] + var[int(op1)+1:]   
+                if t1 == "int" and t2 == "string" and dst_type == "string":
+                    var = self.strip(dst)
+                    
+                    for item in frame:
+                        if item[0] == var:
+                            var = item[1]
+                            break
+                    if int(op1) < 0 or int(op1) >= len(var):
+                        exit(e.SEMANTIC)
+                    type = "string"
+                    tmp = var[:int(op1)] + op2[0] + var[int(op1)+1:]   
+                else:
+                    diff = True
+                    exit(e.OPERAND_TYPE)
                 # print(dst, op1, op2)
         except:
             if diff == True:
@@ -391,10 +406,16 @@ class Frame:
             self.data.append([data, dat_t])
         else:
             self.existsVar(data, e)
+            dat_t = self.getOperand(data, e)
+            dat_t = dat_t[2]
+            if dat_t is None:
+                e.msg("Uninitialized variable!\n")
+                exit(e.MISSING_VALUE)
+
             data = self.strip(data)
             for item in frame:
                 if item[0] == data:
-                    self.data.append(item[1])
+                    self.data.append([item[1], item[2]])
 
         # print(self.data)
     def dataPop(self, data, e):
@@ -461,7 +482,6 @@ class Frame:
         exit(e.SEMANTIC)
 
     def appendLabel(self, label, pos, e):
-        pos = pos
 
         self.labelExists(label, e)
         self.labelList.append((label, pos))
@@ -545,12 +565,8 @@ class Frame:
                         if item[1] is None:
                             e.msg("Variable not initialized!\n")
                             exit(e.MISSING_VALUE)
-                        if item[1] == "nil(type_type)":
-                            item[1] = item[1].replace("(type_type)","")
                         print(item[1], end="")
                     elif mode == "stderr":
-                        if item[1] == "nil(type_type)":
-                            item[1] = item[1].replace("(type_type)","")
                         sys.stderr.write(item[1])
                         
                     break 
@@ -579,6 +595,14 @@ class Frame:
         self.existsVar(dst, e)
         pattern_TF = "TF@[^@]+"
         pattern_LF = "LF@[^@]+"
+        if data_type == "var":
+            self.existsVar(op1, e)
+            data_type = self.getOperand(op1, e)
+            data_type = data_type[2]
+            if data_type is None:
+                e.msg("Missing value in variable!\n")
+                exit(e.MISSING_VALUE)
+
         op1 = self.checkOperand(op1, e)
         if data_type != "string":
             e.msg("Invalid operand type!\n");
@@ -604,11 +628,15 @@ class Frame:
         if type == "var":
             type = self.getOperand(op1, e)
             type = type[2]
+            if type is None:
+                type = ""
         op1 = self.checkOperand(op1, e)
-        if re.match(pattern_LF, str(op1)) or re.match(pattern_TF, str(op1)):
+        if op1 is None:
+            type = ""
+        elif re.match(pattern_LF, str(op1)) or re.match(pattern_TF, str(op1)):
             e.msg("Frame does not exist!\n")
             exit(e.FRAME_NOT_EXIST)
-        if frame is not None:
+        elif frame is not None:
             self.existsFrame(frame, e)
             op1 = self.strip(op1) 
             for item in frame:
@@ -616,8 +644,7 @@ class Frame:
                 if item[0] == op1:
                     op1 = item[1]
                     break
-        if op1 is None:
-            type = ""
+        
         
         self.updateValue(str(type), dst, "string", e)
     def jumpIf(self, dst, op1, op2, t1, t2, e):
@@ -712,6 +739,7 @@ class InstructionParser:
         self.element = element
         self.pos = pos
         self.inp = inp
+        
     def getPos(self):
         return self.pos    
     def checkEscape(self, curr):
@@ -729,6 +757,8 @@ class InstructionParser:
         # print(self.element.childNodes)
         arg_counter = 0 
         dst = ""
+        op1 = ""
+        op2 = ""
         # print(op)
         for child in sorted_children:
             if child.nodeType == child.ELEMENT_NODE:
@@ -739,6 +769,7 @@ class InstructionParser:
                     curr = self.checkEscape(curr)
                     # print(curr)
                     arg_counter += 1
+                    
                     if op == "DEFVAR":
                         
                         frame.appendVar(curr, None, e)
@@ -779,15 +810,16 @@ class InstructionParser:
                             op_frame = frame.getFrame(curr)
                             frame.existsFrame(op_frame, e)
                             frame.existsVar(curr, e)
-                            curr = frame.checkOperand(curr, e)
+                            curr = frame.getOperand(curr, e)
                             # print(curr)
-                            try:
-                                curr = (int(curr))
-                            except:
+                            if curr[2] is None:
+                                e.msg("Invalid exit code!\n")
+                                exit(e.MISSING_VALUE)
+                            if curr[2] != "int":
                                 e.msg("Invalid exit code!\n")
                                 exit(e.OPERAND_TYPE)   
-                            if curr >= 0 and curr <= 49:
-                                exit(curr)  
+                            if int(curr[1]) >= 0 and int(curr[1]) <= 49:
+                                exit(int(curr[1]))  
                             else:
                                 e.msg("Invalid exit code!\n")
                                 exit(e.RUNTIME_VALUE) 
@@ -807,13 +839,17 @@ class InstructionParser:
                         # frame.appendLabel(curr, e)
                         pass
                     elif op == "JUMP":
+                        frame.findLabel(curr, e)
                         for lab in frame.labelList:
                             if lab[0] == curr:
                                 self.pos = lab[1]
                     elif op == "CALL":
-                        pass
-                    elif op == "RETURN":
-                        pass
+                        frame.findLabel(curr, e)
+                        for lab in frame.labelList:
+                            if lab[0] == curr:
+                                frame.returnStack.append(self.pos)
+                                self.pos = lab[1]
+                    
 
                                     
                     else:
@@ -827,7 +863,6 @@ class InstructionParser:
                             elif op == "INT2CHAR":
                                 frame.convertInt(dst, op1, e)
                             elif op == "STRLEN":
-                                
                                 frame.getLength(dst, op1, t1, e)
                             elif op == "TYPE":
                                 frame.getType(dst, op1, t1, e)
@@ -878,7 +913,17 @@ class InstructionParser:
                 
                 if op == "STRLEN" and child.childNodes.length + 1 == 1: # empty string
                     frame.getLength(dst, "", "string", e)
-
+                elif op == "CONCAT": # empty string
+                    if op1 == "":
+                        if op2 != "":
+                            frame.evaluate(dst, "", op2, "CONCAT", "string", t2, e)
+                        else:
+                            frame.evaluate(dst, "", "", "CONCAT", "string", "string", e)
+                    else:
+                        if op2 == "":
+                            frame.evaluate(dst, op1, "", "CONCAT", t1, "string", e)   
+                
+                
         if op == "CREATEFRAME": 
             frame.createFrame(e)
         elif op == "PUSHFRAME":
@@ -888,6 +933,12 @@ class InstructionParser:
         elif op == "BREAK":
             frame.listAll(e)
             exit(0)
+        elif op == "RETURN":
+            try:
+                self.pos = frame.returnStack.pop()
+            except:
+                e.msg("RETURN instruction without CALL!\n")
+                exit(e.MISSING_VALUE)
 
 class progCounter:
     def __init__(self):
@@ -895,7 +946,6 @@ class progCounter:
     def inc(self, pc):
         pc += 1
         self.pc = pc
-        # print(self.pc)
         return pc
 
 class Prog:
